@@ -22,7 +22,7 @@ class Stock extends Model
 
     public function scopeAvailableStock($query)
     {
-        return $query->whereRaw('instock - quantity_sold > 0');
+        return $query->whereRaw('stock_quantity - quantity_sold > 0');
     }
 
 

@@ -55,13 +55,16 @@ class StockController extends Controller
         $user= auth()->user();
         if($user->admin === 1){
             $stocks=Stock::search($request->search)
+            ->availableStock()
             ->product($request->order)
             ->with('order')
             ->with('serials')
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
         } else {
-            $stocks=Stock::where('branch_id', $user->branch_id)->search($request->search)
+            $stocks=Stock::where('branch_id', $user->branch_id)
+            ->search($request->search)
+            ->availableStock()
             ->product($request->order)
             ->with('order')
             ->with('serials')

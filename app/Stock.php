@@ -19,6 +19,13 @@ class Stock extends Model
         return $this->belongsTo('App\PurchaseOrder', 'purchase_order_id');
     }
 
+
+    public function scopeAvailableStock($query)
+    {
+        return $query->whereRaw('instock - quantity_sold > 0');
+    }
+
+
     
    
 

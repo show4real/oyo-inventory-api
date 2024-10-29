@@ -18,8 +18,6 @@ class InvoiceController extends Controller
     public function index(Request $request){
         $invoices = Invoice::
         search($request->search)
-        ->filter1($request->get('fromdate'))
-        ->filter2($request->get('todate'))
         ->cashier($request->cashier_id)
         ->currency($request->currency)
         ->order($request->order)

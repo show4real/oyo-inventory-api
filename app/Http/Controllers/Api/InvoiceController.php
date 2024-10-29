@@ -22,6 +22,8 @@ class InvoiceController extends Controller
         ->currency($request->currency)
         ->order($request->order)
         ->latest()
+        ->filter1($request->get('fromdate'))
+        ->filter2($request->get('todate'))
         ->paginate($request->rows, ['*'], 'page', $request->page);
         $company= CompanySettings::first();
         $sales=Invoice::search($request->search)

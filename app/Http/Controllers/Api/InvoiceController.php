@@ -22,13 +22,13 @@ class InvoiceController extends Controller
         ->currency($request->currency)
         ->order($request->order)
         ->latest()
-        ->filter1($request->get('fromdate'))
-        ->filter2($request->get('todate'))
+        // ->filter1($request->get('fromdate'))
+        // ->filter2($request->get('todate'))
         ->paginate($request->rows, ['*'], 'page', $request->page);
         $company= CompanySettings::first();
         $sales=Invoice::search($request->search)
-        ->filter1($request->get('fromdate'))
-        ->filter2($request->get('todate'))
+        // ->filter1($request->get('fromdate'))
+        // ->filter2($request->get('todate'))
         ->order($request->order)
         ->currency($request->currency)
         ->cashier($request->cashier_id)->get();
@@ -54,16 +54,16 @@ class InvoiceController extends Controller
         where('cashier_id', $cashier)
         ->search($request->search)
         ->currency($request->currency)
-        ->filter1($request->get('fromdate'))
-        ->filter2($request->get('todate'))
+        // ->filter1($request->get('fromdate'))
+        // ->filter2($request->get('todate'))
         ->order($request->order)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
         $company= CompanySettings::first();
 
         $sales=Invoice::where('cashier_id', $cashier)->search($request->search)
-        ->filter1($request->get('fromdate'))
-        ->filter2($request->get('todate'))
+        // ->filter1($request->get('fromdate'))
+        // ->filter2($request->get('todate'))
         ->order($request->order)
         ->currency($request->currency)
         ->cashier($request->cashier_id)->get();

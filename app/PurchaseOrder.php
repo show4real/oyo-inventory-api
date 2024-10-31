@@ -12,7 +12,7 @@ class PurchaseOrder extends Model
 {
     use SoftDeletes;
     protected $table = "purchase_order";
-    protected $appends = ["product_name", "product_description", "supplier_name", "profit", "new_stock_qty", "branch_name", "status", "in_stock", 'product_image'];
+    protected $appends = ["product_name", "product_description", "supplier_name", "profit", "new_stock_qty", "branch_name", "status", "in_stock", 'product_image','fixed_price'];
     protected $hidden = ["product"];
     protected $fillable = ['quantity_sold'];
     protected $dates = [ 'created_at' ];
@@ -59,6 +59,11 @@ class PurchaseOrder extends Model
             });
         });
 
+    }
+
+    public function getFixedPriceAttribute(){
+
+        return $this->unit_selling_price;
     }
 
     public function getInstockAttribute()

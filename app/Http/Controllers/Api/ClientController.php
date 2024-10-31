@@ -18,6 +18,14 @@ class ClientController extends Controller
         return response()->json(compact('clients'));
     }
 
+    public function allClients(Request $request){
+        $clients = Client::
+        search($request->search)
+        ->latest()
+        ->get();
+        return response()->json(compact('clients'));
+    }
+
     public function cashiers(Request $request){
         $cashiers = User::
         search($request->search)

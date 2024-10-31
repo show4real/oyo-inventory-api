@@ -144,6 +144,7 @@ function(){
     Route::post('updatepayment', 'Api\PaymentController@update');
 
     Route::post('clients', 'Api\ClientController@index');
+     Route::post('all/clients', 'Api\ClientController@allClients');
     Route::get('client/{client}', 'Api\ClientController@show');
     Route::post('addclient', 'Api\ClientController@save');
     Route::post('deleteclient/{client}', 'Api\ClientController@delete');

@@ -116,13 +116,13 @@ class InvoiceController extends Controller
     }
 
     public function save(Request $request){
-        $validator = Validator::make($request->all(), [
-            'invoice_no' => 'required|unique:invoices',
-        ]);
+        // $validator = Validator::make($request->all(), [
+        //     'invoice_no' => 'required|unique:invoices',
+        // ]);
 
-      if($validator->fails()){
-          return response()->json($validator->messages(), 422);
-        }
+        // if($validator->fails()){
+        //   return response()->json($validator->messages(), 422);
+        // }
         $balance = $request->total_amount + $request->amount_paid;
         $invoice= new Invoice();
         $invoice->invoice_no=$request->invoice_no;

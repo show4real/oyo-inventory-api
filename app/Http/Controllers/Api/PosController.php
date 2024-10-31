@@ -56,6 +56,7 @@ class PosController extends Controller
                 $pos_order->transaction_id = $transact_id;
                 $client_id = $request->client_id;
                 $pos_order->qty_sold =$v[$index]['quantity'];
+                $pos_order->unit_selling_price = $v[$index]['order']['unit_selling_price'];
                 $pos_order->supplier_id =$v[$index]['supplier_id'];
                 if($sell_by_serial_no == 1){
                     $pos_order->serials =$v[$index]['new_serials'];

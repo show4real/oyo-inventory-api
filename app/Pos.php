@@ -18,7 +18,7 @@ class Pos extends Model
     protected $hidden = ["product"];
     protected $fillable = ['purchase_order_id',
         'qty_sold', 'transaction_id', 'product_id',
-         'payment_mode', 'cashier_id','serials'];
+         'payment_mode', 'cashier_id','serials','unit_selling_price'];
     protected $casts = ['qty_sold'=>'integer','product_id'=>'integer', 'serials' => 'array'];
 
     public function scopeSearch($query, $filter)

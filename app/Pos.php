@@ -59,10 +59,16 @@ class Pos extends Model
 
     public function getSellingPriceAttribute()
     {
-        $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
-        if($purchase_order){
-            return $purchase_order->unit_selling_price;
+
+        if($this->unit_selling_price == null){
+            $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
+            if($purchase_order){
+                return $purchase_order->unit_selling_price;
+            }
         }
+
+        return $this->unit_selling_price;
+        
 
     }
 

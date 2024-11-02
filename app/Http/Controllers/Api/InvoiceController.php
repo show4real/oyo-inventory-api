@@ -17,18 +17,20 @@ class InvoiceController extends Controller
 {
     public function index(Request $request){
         $invoices = Invoice::
+       $invoices = Invoice::
         search($request->search)
-        ->cashier($request->cashier_id)
+        ->filter1($request->get('fromdate'))
         ->currency($request->currency)
+        ->filter2($request->get('todate'))
         ->order($request->order)
+        ->cashier($request->cashier_id)
         ->latest()
-        // ->filter1($request->get('fromdate'))
-        // ->filter2($request->get('todate'))
         ->paginate($request->rows, ['*'], 'page', $request->page);
+
         $company= CompanySettings::first();
         $sales=Invoice::search($request->search)
-        // ->filter1($request->get('fromdate'))
-        // ->filter2($request->get('todate'))
+        ->filter1($request->get('fromdate'))
+        ->filter2($request->get('todate'))
         ->order($request->order)
         ->currency($request->currency)
         ->cashier($request->cashier_id)->get();

@@ -78,7 +78,7 @@ class InvoiceController extends Controller
             $balance=$sale['balance'];
             $discount = $sale['discount'];
              $total_sales+=$sales;
-             $total_balance+=$balance;
+             $total_balance += abs($balance);
              $total_discount+=$discount;
         }
         return response()->json(compact('invoices','company','total_sales','total_balance','total_discount'));

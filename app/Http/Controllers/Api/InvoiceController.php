@@ -78,7 +78,7 @@ class InvoiceController extends Controller
             $balance=$sale['balance'];
             $discount = $sale['discount'];
              $total_sales+=$sales;
-             $total_balance += abs($balance);
+             $total_balance+=$balance;
              $total_discount+=$discount;
         }
         return response()->json(compact('invoices','company','total_sales','total_balance','total_discount'));
@@ -125,7 +125,7 @@ class InvoiceController extends Controller
         // if($validator->fails()){
         //   return response()->json($validator->messages(), 422);
         // }
-        $balance = $request->total_amount + $request->amount_paid;
+        $balance = $request->total_amount - $request->amount_paid;
         $invoice= new Invoice();
         $invoice->invoice_no=$request->invoice_no;
         $invoice->cashier_id=auth()->user()->id;

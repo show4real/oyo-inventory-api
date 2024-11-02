@@ -16,7 +16,7 @@ use App\User;
 class InvoiceController extends Controller
 {
     public function index(Request $request){
-        $invoices = Invoice::
+       
        $invoices = Invoice::
         search($request->search)
         ->filter1($request->get('fromdate'))

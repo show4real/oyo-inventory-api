@@ -29,6 +29,13 @@ class ProductController extends Controller
         return response()->json(compact('products'));
     }
 
+    public function getAllProducts(){
+
+        $products = Product::get();
+
+        return response()->json(compact('products'));
+    }
+
     public function show(Product $product){
         $product = $product->where('id', $product->id)->first();
         $attributes=Attribute::where('product_id',$product->id)

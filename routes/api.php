@@ -26,6 +26,7 @@ Route::post('/test', 'Api\IpAddressController@index');
 
 Route::post('/changepassword', 'Api\ForgotPasswordController@changepassword');
 Route::post('/sendrecovery', 'Api\ForgotPasswordController@sendrecovery');
+ Route::post('all-products', 'Api\ProductController@getAllProducts');
 
 
 Route::group(['middleware'=>['jwt.auth','CheckAdmin']],

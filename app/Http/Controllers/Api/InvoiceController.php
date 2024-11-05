@@ -207,7 +207,23 @@ class InvoiceController extends Controller
     }
    
     public function delete($id, Request $request){
+
         $invoice = Invoice::findOrFail($id);
+
+        $posRecords =  Pos::where('invoice_id', $invoice->id)->get();
+
+        if($posRecords->isNotEmpty()){
+
+            foreach ($posRecords as $pos) {
+            
+                $pos->stock()->decrement('qty_sold', $pos->sold);
+                
+                $pos->delete();
+            }
+        }
+
+        
+
         $invoice->remove();
         return response()->json(true);
     }

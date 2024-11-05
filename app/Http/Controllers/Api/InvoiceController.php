@@ -216,7 +216,7 @@ class InvoiceController extends Controller
 
             foreach ($posRecords as $pos) {
             
-                $pos->stock()->decrement('qty_sold', $pos->sold);
+                $pos->stock()->decrement('quantity_sold', $pos->qty_sold);
                 
                 $pos->delete();
             }

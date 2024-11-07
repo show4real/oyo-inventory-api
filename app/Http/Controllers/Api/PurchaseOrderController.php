@@ -63,9 +63,9 @@ class PurchaseOrderController extends Controller
         $total_purchase=$this->purchase_order::getSales($request);
        
         $suppliers=Supplier::select('id','name')->get();
-        // $products=Product::select('id','name')->get();
+        $products=Product::select('id','name')->take(10)->latest()->get();
 
-        return response()->json(compact('purchase_orders','total_purchase','suppliers'));
+        return response()->json(compact('purchase_orders','total_purchase','products','suppliers'));
        
     }
 

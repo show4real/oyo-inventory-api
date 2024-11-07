@@ -15,6 +15,8 @@ $app = new Illuminate\Foundation\Application(
     $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
 );
 
+ini_set('memory_limit', env('PHP_MEMORY_LIMIT', '256M'));
+
 /*
 |--------------------------------------------------------------------------
 | Bind Important Interfaces

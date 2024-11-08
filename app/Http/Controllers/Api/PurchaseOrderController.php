@@ -49,13 +49,9 @@ class PurchaseOrderController extends Controller
     }
     public function purchaseOrders(Request $request)
     {
-        $purchase_orders=$this->purchase_order
-       
-        ->filter1($request->get('fromdate'))
+        $purchase_orders= PurchaseOrder::filter1($request->get('fromdate'))
         ->filter2($request->get('todate'))
         ->search($request->search)
-        ->with('supplier')
-        ->with('serials')
         ->order($request->order)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);

@@ -52,18 +52,15 @@ class PurchaseOrderController extends Controller
         $purchase_orders=PurchaseOrder::filter1($request->get('fromdate'))
         ->filter2($request->get('todate'))
         ->search($request->search)
-        ->with('supplier')
-        ->with('serials')
         ->order($request->order)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
         $total_purchase=$this->purchase_order::getSales($request);
        
-        $suppliers=Supplier::select('id','name')->get();
-        $products=Product::select('id','name')->get();
+       
 
-        return response()->json(compact('purchase_orders','total_purchase','products','suppliers'));
+        return response()->json(compact('purchase_orders','total_purchase'));
        
     }
 

@@ -101,7 +101,11 @@ class PosController extends Controller
             ->first();
             $pos_items = Pos::where('invoice_id', $invoice->id)->with('stock')->with('order')->get();
 
-            return response()->json(compact('pos_order','sold_at','payment_mode','invoice','pos_items'));
+            $invoices = Invoice::where('client_id', $invoice->client_id)->get();
+
+            $total_balance = $invoices->sum('client_balance');
+
+            return response()->json(compact('pos_order','sold_at','payment_mode','invoice','pos_items','total_balance'));
         }
        
     }

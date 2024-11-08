@@ -14,7 +14,7 @@ class Invoice extends Model
     use SoftDeletes;
 
     protected $appends = [
-        'client_name', 'cashier_name','total_payment','total_balance'
+        'client_name', 'cashier_name','total_payment','total_balance','client_balance'
     ];
     public function getClientNameAttribute()
     {
@@ -22,6 +22,11 @@ class Invoice extends Model
             $client= Client::where('id',$this->client_id)->first();
             return $client->name;
        }
+    }
+
+    public function getClientBalanceAttribute()
+    {
+        return $this->amount - $this->amount_paid;
     }
 
   
@@ -53,6 +58,7 @@ class Invoice extends Model
     }
 
     public function getTotalBalanceAttribute(){
+
         if($this->id){
             $payments=Payment::where('invoice_id',$this->id)->get();
             $total=0;

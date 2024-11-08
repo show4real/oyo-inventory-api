@@ -101,7 +101,13 @@ class InvoiceController extends Controller
         $items= InvoiceItem::where('invoice_id', $invoice->id)->get();
         $pos_items = Pos::where('invoice_id', $invoice->id)->with('stock')->with('order')->get();
         $payments= Payment::where('invoice_id', $invoice->id)->get();
-        return response()->json(compact('invoice','items','payments','pos_items'),200);
+        $clientInvoices = Invoice::where('client_id', $invoice->client_id)
+                ->whereColumn('amount_paid', '<', 'amount')
+                ->get();
+
+        $total_balance = $clientInvoices->sum('client_balance');
+
+        return response()->json(compact('invoice','items','payments','pos_items','total_balance'),200);
     }
 
     public function show2(Invoice $invoice){
@@ -114,7 +120,14 @@ class InvoiceController extends Controller
         $items= InvoiceItem::where('invoice_id', $invoice->id)->get();
         $pos_items = Pos::where('invoice_id', $invoice->id)->with('stock')->with('order')->get();
         $payments= Payment::where('invoice_id', $invoice->id)->get();
-        return response()->json(compact('invoice','items','payments','pos_items'),200);
+
+        $clientInvoices = Invoice::where('client_id', $invoice->client_id)
+                ->whereColumn('amount_paid', '<', 'amount')
+                ->get();
+
+            $total_balance = $clientInvoices->sum('client_balance');
+
+        return response()->json(compact('invoice','items','payments','pos_items','total_balance'),200);
     }
 
     public function save(Request $request){
@@ -161,9 +174,15 @@ class InvoiceController extends Controller
             $payment->save();   
             $client= Client::where('id',$request->client_id)->first();
             $invoice = Invoice::with('client')->with('payments')->latest()->first();
+
+            $clientInvoices = Invoice::where('client_id', $invoice->client_id)
+                ->whereColumn('amount_paid', '<', 'amount')
+                ->get();
+
+            $total_balance = $clientInvoices->sum('client_balance');
               
         }
-        return response()->json(compact('invoice','payment','items','client'));
+        return response()->json(compact('invoice','payment','items','client','total_balance'));
     }
 
     public function update(Request $request, Invoice $invoice){

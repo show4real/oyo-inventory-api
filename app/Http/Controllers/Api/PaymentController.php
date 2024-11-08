@@ -27,6 +27,7 @@ class PaymentController extends Controller
         $payment->balance = $new_balance;
         $payment->invoice_id = $request->invoice_id;
         $payment->save();
+        
         $invoice=Invoice::where('id', $request->invoice_id)->first();
         $invoice->amount_paid =$total;
         $invoice->balance=$new_balance;

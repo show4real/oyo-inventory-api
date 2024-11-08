@@ -56,7 +56,7 @@ class PurchaseOrderController extends Controller
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
-        $total_purchase= 0;
+        $total_purchase=$this->purchase_order::getSales($request);
        
        
 

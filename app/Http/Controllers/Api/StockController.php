@@ -85,7 +85,7 @@ class StockController extends Controller
     }
 
 
-    public function stocks2(){
+    public function stocks2(Request $request){
 
         $stocks=Stock::search($request->search)
             ->availableStock()

@@ -14,6 +14,7 @@ use App\Attribute;
 use App\StockSerialNo;
 use App\PurchaseOrderSerial;
 use Carbon\Carbon;
+use App\Pos;
 
 class StockController extends Controller
 {

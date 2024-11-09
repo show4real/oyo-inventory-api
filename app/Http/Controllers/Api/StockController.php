@@ -100,7 +100,7 @@ class StockController extends Controller
                 ->select('stock_id', 'qty_sold')
                 ->get()
                 ->keyBy('stock_id');
-        $prev_invoice = Invoice::select('client_id','amount_paid','payment_mode')->find($request->invoice_id);
+        $prev_invoice = Invoice::select('id','client_id','amount_paid','payment_mode')->where('id',$request->invoice_id)->first();
 
         
         $stock_ids = $pos_items->pluck('stock_id');

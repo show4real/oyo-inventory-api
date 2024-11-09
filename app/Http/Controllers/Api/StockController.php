@@ -99,6 +99,7 @@ class StockController extends Controller
                 ->select('stock_id', 'qty_sold')
                 ->get()
                 ->keyBy('stock_id');
+        $prev_invoice = Invoice::select('client_id','amount_paid')->find($request->invoice_id);
 
         
         $stock_ids = $pos_items->pluck('stock_id');
@@ -109,7 +110,7 @@ class StockController extends Controller
             $stock->quantity = $pos_items[$stock->id]->qty_sold ?? 0;
         });
 
-         return response()->json(compact('stocks','sold_stocks'));
+         return response()->json(compact('stocks','sold_stocks','prev_invoice'));
     }
 
     public function show(Request $request, $order){

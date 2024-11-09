@@ -9,7 +9,8 @@ use App\PurchaseOrder;
 class Stock extends Model
 {
     use SoftDeletes;
-    protected $appends=["supplier_id","product_name",'qr',"profit","tracking","new_stock_qty","branch_name","status","in_stock",'product_image'];
+    protected $appends=["supplier_id","product_name",'qr',
+    "profit","tracking","new_stock_qty","branch_name","status","in_stock",'product_image','unit_selling_price'];
 
     
     protected $hidden = ['product','branch'];
@@ -23,6 +24,16 @@ class Stock extends Model
     public function scopeAvailableStock($query)
     {
         return $query->whereRaw('stock_quantity - quantity_sold > 0');
+    }
+
+    public function getUnitSellingPriceAttribute()
+    {
+        $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
+        
+        if($purchase_order){
+            return $purchase_order->unit_selling_price;
+        }
+
     }
 
 

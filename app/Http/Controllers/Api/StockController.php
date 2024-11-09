@@ -99,7 +99,7 @@ class StockController extends Controller
         $prev_invoice = Invoice::where('id', $request->invoice_id)->first();
 
         $pos_items = Pos::where('invoice_id', $request->invoice_id)
-                ->select('stock_id', 'qty_sold')
+                ->select('stock_id', 'qty_sold','unit_selling_price')
                 ->get()
                 ->keyBy('stock_id');
        
@@ -110,7 +110,7 @@ class StockController extends Controller
 
         $sold_stocks->each(function ($stock) use ($pos_items) {
             $stock->quantity = $pos_items[$stock->id]->qty_sold ?? 0;
-            $stock->order->unit_selling_price = 500 ?? 0;
+            $stock->order->unit_selling_price = $pos_items[$stock->id]->unit_selling_price ?? 0;
         });
 
          return response()->json(compact('stocks','sold_stocks','prev_invoice'));

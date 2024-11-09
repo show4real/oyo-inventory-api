@@ -75,9 +75,11 @@ class StockController extends Controller
         $suppliers=Supplier::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
         $products=Product::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
         $branches=Branch::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
+
+        $pos_items = Pos::where('invoice_id', $request->invoice_id)->get();
        
        
-        return response()->json(compact('stocks','products','suppliers','branches'));
+        return response()->json(compact('stocks','products','suppliers','branches','pos_items'));
        
     }
 

@@ -96,7 +96,7 @@ class StockController extends Controller
             ->paginate($request->rows, ['*'], 'page', $request->page);
 
         $pos_items = Pos::where('invoice_id', $request->invoice_id)
-                ->select('stock_id', 'quantity_sold')
+                ->select('stock_id', 'qty_sold')
                 ->get()
                 ->keyBy('stock_id');
 
@@ -106,7 +106,7 @@ class StockController extends Controller
 
 
         $sold_stocks->each(function ($stock) use ($pos_items) {
-            $stock->quantity_sold = $pos_items[$stock->id]->quantity_sold ?? 0;
+            $stock->quantity = $pos_items[$stock->id]->qty_sold ?? 0;
         });
 
          return response()->json(compact('stocks','sold_stocks'));

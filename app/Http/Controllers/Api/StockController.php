@@ -77,11 +77,39 @@ class StockController extends Controller
         $products=Product::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
         $branches=Branch::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
 
-        $pos_items = Pos::where('invoice_id', $request->invoice_id)->get();
+        
        
        
-        return response()->json(compact('stocks','products','suppliers','branches','pos_items'));
+        return response()->json(compact('stocks','products','suppliers','branches'));
        
+    }
+
+
+    public function stocks2(){
+
+        $stocks=Stock::search($request->search)
+            ->availableStock()
+            ->product($request->order)
+            ->with('order')
+            ->with('serials')
+            ->latest()
+            ->paginate($request->rows, ['*'], 'page', $request->page);
+
+        $pos_items = Pos::where('invoice_id', $request->invoice_id)
+                ->select('stock_id', 'quantity_sold')
+                ->get()
+                ->keyBy('stock_id');
+
+        
+        $stock_ids = $pos_items->pluck('stock_id');
+        $sold_stocks = Stock::whereIn('id', $stock_ids)->->with('order')->get();
+
+
+        $sold_stocks->each(function ($stock) use ($pos_items) {
+            $stock->quantity_sold = $pos_items[$stock->id]->quantity_sold ?? 0;
+        });
+
+         return response()->json(compact('stocks','sold_stocks'));
     }
 
     public function show(Request $request, $order){

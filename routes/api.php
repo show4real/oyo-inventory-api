@@ -95,6 +95,7 @@ function(){
     Route::post('stocks', 'Api\StockController@stocks');
 
     Route::post('branch_stocks', 'Api\StockController@branchStocks');
+    Route::post('stocks2', 'Api\StockController@stocks2');
 
     Route::post('stock/{stock}', 'Api\StockController@show');
     Route::post('saveserial', 'Api\StockController@saveSerial');

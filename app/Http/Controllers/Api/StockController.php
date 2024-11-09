@@ -102,7 +102,7 @@ class StockController extends Controller
 
         
         $stock_ids = $pos_items->pluck('stock_id');
-        $sold_stocks = Stock::whereIn('id', $stock_ids)->->with('order')->get();
+        $sold_stocks = Stock::whereIn('id', $stock_ids)->with('order')->get();
 
 
         $sold_stocks->each(function ($stock) use ($pos_items) {

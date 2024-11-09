@@ -109,8 +109,8 @@ class StockController extends Controller
 
 
         $sold_stocks->each(function ($stock) use ($pos_items) {
-            $stock->quantity = 20 ?? 0;
-            $stock->unit_selling_price = $pos_items[$stock->id]->unit_selling_price ?? 0;
+            $stock->quantity = $pos_items[$stock->id]->qty_sold ?? 0;
+            $stock->order->unit_selling_price = $pos_items[$stock->id]->unit_selling_price ?? 0;
         });
 
          return response()->json(compact('stocks','sold_stocks','prev_invoice'));

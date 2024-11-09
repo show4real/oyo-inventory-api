@@ -96,12 +96,13 @@ class StockController extends Controller
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
 
+        $prev_invoice = Invoice::where('id', $request->invoice_id)->first();
+
         $pos_items = Pos::where('invoice_id', $request->invoice_id)
                 ->select('stock_id', 'qty_sold')
                 ->get()
                 ->keyBy('stock_id');
-        $prev_invoice = Invoice::select('id','client_id','amount_paid','payment_mode')->where('id',$request->invoice_id)->first();
-
+       
         
         $stock_ids = $pos_items->pluck('stock_id');
         $sold_stocks = Stock::whereIn('id', $stock_ids)->with('order')->get();

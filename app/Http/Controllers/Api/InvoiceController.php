@@ -40,7 +40,7 @@ class InvoiceController extends Controller
         foreach($sales as $sale){
             
             $sales=$sale['amount'];
-            $balance=$sale['balance'];
+            $balance=$sale['amount'] - $sale['amount_paid'];
             $discount = $sale['discount'];
              $total_sales+=$sales;
              $total_balance+=$balance;

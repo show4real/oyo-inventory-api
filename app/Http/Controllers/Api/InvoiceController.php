@@ -28,9 +28,10 @@ class InvoiceController extends Controller
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
         $company= CompanySettings::first();
+        
         $sales=Invoice::search($request->search)
-        ->filter1($request->get('fromdate'))
-        ->filter2($request->get('todate'))
+        // ->filter1($request->get('fromdate'))
+        // ->filter2($request->get('todate'))
         ->order($request->order)
         ->currency($request->currency)
         ->cashier($request->cashier_id)->get();

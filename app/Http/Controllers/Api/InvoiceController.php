@@ -140,13 +140,7 @@ class InvoiceController extends Controller
     }
 
     public function save(Request $request){
-        // $validator = Validator::make($request->all(), [
-        //     'invoice_no' => 'required|unique:invoices',
-        // ]);
-
-        // if($validator->fails()){
-        //   return response()->json($validator->messages(), 422);
-        // }
+        
         $balance = $request->total_amount - $request->amount_paid;
         $invoice= new Invoice();
         $invoice->invoice_no=$request->invoice_no;
@@ -182,7 +176,7 @@ class InvoiceController extends Controller
             $payment->invoice_id = $invoice->id;
             $payment->save();   
             $client= Client::where('id',$request->client_id)->first();
-            $invoice = Invoice::with('client')->with('payments')->latest()->first();
+            $invoice = Invoice::with('client')->with('payments')->where('id', $invoice->id)->first();
 
             $clientInvoices = Invoice::where('client_id', $invoice->client_id)
                 ->get();

@@ -135,6 +135,7 @@ class PosController extends Controller
         }
 
         $sale_orders = [];
+        $pos_order=[];
         $payment_mode = $request->payment_mode;
         $transact_id = "TRANSAC-" . strtoupper(Str::random(15));
         $total_purchase = 0;
@@ -203,7 +204,7 @@ class PosController extends Controller
             $sold_at = now();
 
             
-            return response()->json(compact('sold_at', 'payment_mode', 'invoice', 'pos_items', 'total_balance','prev_balance','balance'));
+            return response()->json(compact('pos_order','sold_at', 'payment_mode', 'invoice', 'pos_items', 'total_balance','prev_balance','balance'));
         }
     }
 

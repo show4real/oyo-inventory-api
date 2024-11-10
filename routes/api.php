@@ -126,6 +126,9 @@ function(){
     Route::post('filtered_attributes', 'Api\PurchaseOrderController@filterAttributes');
 
     Route::post('pos_order', 'Api\PosController@multPosOrder');
+     Route::post('edit/pos_order', 'Api\PosController@editMultPosOrder');
+
+    
     Route::post('pos/products', 'Api\PosController@products');
     Route::post('pos_sales', 'Api\PosController@getPosSales');
     Route::post('transaction_details', 'Api\PosController@getTransactionDetails');

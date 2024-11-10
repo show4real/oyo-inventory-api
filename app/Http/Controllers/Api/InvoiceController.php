@@ -107,7 +107,7 @@ class InvoiceController extends Controller
 
         $total_balance = $clientInvoices->sum('client_balance');
 
-        $balance = $total_purchase - $invoice->amount_paid;
+        $balance = $invoice->amount - $invoice->amount_paid;
 
         $prev_balance = $total_balance - $balance;
 
@@ -130,7 +130,7 @@ class InvoiceController extends Controller
 
         $total_balance = $clientInvoices->sum('client_balance');
         
-        $balance = $total_purchase - $invoice->amount_paid;
+        $balance = $invoice->amount - $invoice->amount_paid;
 
            
 

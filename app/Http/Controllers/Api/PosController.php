@@ -157,6 +157,7 @@ class PosController extends Controller
                     'stock_id' => $cart_item['id'],
                     'product_id' => $cart_item['product_id'],
                     'edited_by' => auth()->user()->id,
+                    'cashier_id' => auth()->user()->id,
                     'payment_mode' => $payment_mode,
                     'channel' => 'pos_order',
                 ]);

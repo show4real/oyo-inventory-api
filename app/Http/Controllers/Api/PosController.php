@@ -190,7 +190,10 @@ class PosController extends Controller
             
             $pos_items = Pos::where('invoice_id', $invoice->id)->with(['stock', 'order'])->get();
 
-            $total_balance = Invoice::where('client_id', $invoice->client_id)->sum('client_balance');
+           
+            $invoices = Invoice::where('client_id', $invoice->client_id)->get();
+
+            $total_balance = $invoices->sum('client_balance');
 
             $balance = $total_purchase - $request->amount_paid;
 

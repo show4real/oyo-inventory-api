@@ -113,6 +113,10 @@ class StockController extends Controller
             $stock->order->unit_selling_price = $pos_items[$stock->id]->unit_selling_price ?? 0;
         });
 
+        $sold_stocks = $sold_stocks->sortBy(function ($stock) use ($stock_ids) {
+            return $stock_ids->search($stock->id);
+        })->values();
+
          return response()->json(compact('stocks','sold_stocks','prev_invoice'));
     }
 

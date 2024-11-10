@@ -75,7 +75,7 @@ class InvoiceController extends Controller
         foreach($sales as $sale){
             
             $sales=$sale['amount'];
-            $balance=$sale['balance'];
+             $balance=$sale['amount'] - $sale['amount_paid'];
             $discount = $sale['discount'];
              $total_sales+=$sales;
              $total_balance+=$balance;
@@ -102,7 +102,6 @@ class InvoiceController extends Controller
         $pos_items = Pos::where('invoice_id', $invoice->id)->with('stock')->with('order')->get();
         $payments= Payment::where('invoice_id', $invoice->id)->get();
         $clientInvoices = Invoice::where('client_id', $invoice->client_id)
-                ->whereColumn('amount_paid', '<', 'amount')
                 ->get();
 
         $total_balance = $clientInvoices->sum('client_balance');
@@ -122,7 +121,6 @@ class InvoiceController extends Controller
         $payments= Payment::where('invoice_id', $invoice->id)->get();
 
         $clientInvoices = Invoice::where('client_id', $invoice->client_id)
-                ->whereColumn('amount_paid', '<', 'amount')
                 ->get();
 
             $total_balance = $clientInvoices->sum('client_balance');
@@ -176,7 +174,6 @@ class InvoiceController extends Controller
             $invoice = Invoice::with('client')->with('payments')->latest()->first();
 
             $clientInvoices = Invoice::where('client_id', $invoice->client_id)
-                ->whereColumn('amount_paid', '<', 'amount')
                 ->get();
 
             $total_balance = $clientInvoices->sum('client_balance');

@@ -104,10 +104,15 @@ class PosController extends Controller
 
             $invoices = Invoice::where('client_id', $invoice->client_id)->get();
 
+            
+            $balance = $total_purchase - $request->amount_paid;
+
             $total_balance = $invoices->sum('client_balance');
+
+            $prev_balance = $total_balance - $balance;
             
 
-            return response()->json(compact('pos_order','sold_at','payment_mode','invoice','pos_items','total_balance'));
+            return response()->json(compact('pos_order','sold_at','payment_mode','invoice','pos_items','total_balance','balance','prev_balance'));
         }
        
     }
@@ -184,12 +189,17 @@ class PosController extends Controller
 
             
             $pos_items = Pos::where('invoice_id', $invoice->id)->with(['stock', 'order'])->get();
+
             $total_balance = Invoice::where('client_id', $invoice->client_id)->sum('client_balance');
+
+            $balance = $total_purchase - $request->amount_paid;
+
+            $prev_balance = $total_balance - $balance;
 
             $sold_at = now();
 
             
-            return response()->json(compact('sold_at', 'payment_mode', 'invoice', 'pos_items', 'total_balance'));
+            return response()->json(compact('sold_at', 'payment_mode', 'invoice', 'pos_items', 'total_balance','prev_balance','balance'));
         }
     }
 

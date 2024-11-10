@@ -28,7 +28,7 @@ class InvoiceController extends Controller
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
         $company= CompanySettings::first();
-        
+
         $sales=Invoice::search($request->search)
         // ->filter1($request->get('fromdate'))
         // ->filter2($request->get('todate'))
@@ -107,7 +107,11 @@ class InvoiceController extends Controller
 
         $total_balance = $clientInvoices->sum('client_balance');
 
-        return response()->json(compact('invoice','items','payments','pos_items','total_balance'),200);
+        $balance = $total_purchase - $invoice->amount_paid;
+
+        $prev_balance = $total_balance - $balance;
+
+        return response()->json(compact('invoice','items','payments','pos_items','total_balance','prev_balance','balance'),200);
     }
 
     public function show2(Invoice $invoice){
@@ -124,9 +128,15 @@ class InvoiceController extends Controller
         $clientInvoices = Invoice::where('client_id', $invoice->client_id)
                 ->get();
 
-            $total_balance = $clientInvoices->sum('client_balance');
+        $total_balance = $clientInvoices->sum('client_balance');
+        
+        $balance = $total_purchase - $invoice->amount_paid;
 
-        return response()->json(compact('invoice','items','payments','pos_items','total_balance'),200);
+           
+
+        $prev_balance = $total_balance - $balance;
+
+        return response()->json(compact('invoice','items','payments','pos_items','total_balance','prev_balance','balance'),200);
     }
 
     public function save(Request $request){
@@ -178,9 +188,14 @@ class InvoiceController extends Controller
                 ->get();
 
             $total_balance = $clientInvoices->sum('client_balance');
+
+            $balance = $total_purchase - $request->amount_paid;
+
+
+            $prev_balance = $total_balance - $balance;
               
         }
-        return response()->json(compact('invoice','payment','items','client','total_balance'));
+        return response()->json(compact('invoice','payment','items','client','total_balance','prev_balance','balance'));
     }
 
     public function update(Request $request, Invoice $invoice){

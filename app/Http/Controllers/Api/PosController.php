@@ -30,6 +30,7 @@ class PosController extends Controller
         $currency = CompanySettings::first()->currency;
         $sale_orders=[];
         $pos_order=[];
+        $payment_mode = $request->payment_mode;
         
         $transact_id="TRANSAC-".strtoupper(Str::random(15));
         $sell_by_serial_no= CompanySettings::first()->sell_by_serial_no;
@@ -63,7 +64,7 @@ class PosController extends Controller
                 $pos_order->product_id =$v[$index]['product_id'];
                 $pos_order->cashier_id = auth()->user()->id;
 
-                $pos_order->payment_mode=$request->payment_mode;
+                $pos_order->payment_mode=$payment_mode;
                 $pos_order->channel='pos_order';
                 $pos_order->save();
                 $sold_at=now();
@@ -83,7 +84,7 @@ class PosController extends Controller
             $invoice->amount = $total_purchase;
             $invoice->amount_paid = $request->amount_paid;
             $invoice->balance = $total_purchase - $request->amount_paid;
-            $invoice->payment_mode = $request->payment_mode;
+            $invoice->payment_mode = $payment_mode;
             $invoice->save();
             
             $payment= new Payment();
@@ -104,6 +105,7 @@ class PosController extends Controller
             $invoices = Invoice::where('client_id', $invoice->client_id)->get();
 
             $total_balance = $invoices->sum('client_balance');
+            
 
             return response()->json(compact('pos_order','sold_at','payment_mode','invoice','pos_items','total_balance'));
         }

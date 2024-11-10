@@ -16,6 +16,23 @@ class Invoice extends Model
     protected $appends = [
         'client_name', 'cashier_name','total_payment','total_balance','client_balance'
     ];
+
+    protected $fillable = [
+        'invoice_no',
+        'transaction_id',
+        'cashier_id',
+        'description',
+        'payment_type',
+        'client_id',
+        'currency',
+        'issued_date',
+        'due_date',
+        'amount',
+        'amount_paid',
+        'balance',
+        'payment_mode',
+        'edited_by'
+    ];
     public function getClientNameAttribute()
     {
        if($this->client_id){

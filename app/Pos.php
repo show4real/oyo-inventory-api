@@ -14,12 +14,39 @@ class Pos extends Model
 {
     use SoftDeletes;
     protected $table = "pos";
-    protected $appends = ["cashier_name","supplier_name","cost", "selling_price","product_name","sold_serials"];
+
+    protected $appends = [
+        "cashier_name",
+        "supplier_name",
+        "cost",
+        "selling_price",
+        "product_name",
+        "sold_serials"
+    ];
+
     protected $hidden = ["product"];
-    protected $fillable = ['purchase_order_id',
-        'qty_sold', 'transaction_id', 'product_id',
-         'payment_mode', 'cashier_id','serials','unit_selling_price'];
-    protected $casts = ['qty_sold'=>'integer','product_id'=>'integer', 'serials' => 'array'];
+
+
+    protected $fillable = [
+        'purchase_order_id',
+        'transaction_id',
+        'invoice_id',
+        'qty_sold',
+        'unit_selling_price',
+        'serials',
+        'supplier_id',
+        'stock_id',
+        'product_id',
+        'cashier_id',
+        'payment_mode',
+        'channel',
+        'edited_by'
+    ];
+    protected $casts = [
+        'qty_sold'=>'integer',
+        'product_id'=>'integer',
+        'serials' => 'array'
+    ];
 
     public function scopeSearch($query, $filter)
     {

@@ -12,6 +12,14 @@ class Payment extends Model
     protected $appends = [
         'invoice_num'
     ];
+
+    protected $fillable = [
+        'invoice_id',
+        'amount_paid',
+        'amount',
+        'balance',
+    ];
+
     public function getInvoiceNumAttribute()
     {
         $invoice= Invoice::where('id',$this->invoice_id)->first();

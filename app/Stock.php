@@ -9,12 +9,23 @@ use App\PurchaseOrder;
 class Stock extends Model
 {
     use SoftDeletes;
-    protected $appends=["supplier_id","product_name",'qr',
-    "profit","tracking","new_stock_qty","branch_name","status","in_stock",'product_image','unit_selling_price'];
+    protected $appends=[
+        "supplier_id",
+        "product_name",
+        'qr',
+        "profit",
+        "tracking",
+        "new_stock_qty",
+        "branch_name",
+        "status",
+        "in_stock",
+        'product_image',
+        'unit_selling_price'
+    ];
 
     
     protected $hidden = ['product','branch'];
-    protected $fillable = ['stock_quantity','purchase_order_id','branch_id','product_id','supplier_id'];
+    protected $fillable = ['stock_quantity','purchase_order_id','branch_id','product_id','supplier_id','quantity_sold',];
 
     public function order(){
         return $this->belongsTo('App\PurchaseOrder', 'purchase_order_id');
@@ -29,7 +40,7 @@ class Stock extends Model
     public function getUnitSellingPriceAttribute()
     {
         $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
-        
+
         if($purchase_order){
             return $purchase_order->unit_selling_price;
         }

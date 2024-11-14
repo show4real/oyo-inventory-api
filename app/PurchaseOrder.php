@@ -63,7 +63,7 @@ class PurchaseOrder extends Model
 
     public function getFixedPriceAttribute(){
 
-        return $this->unit_selling_price;
+        return $this->unit_selling_price ?? 0;
     }
 
     public function getInstockAttribute()

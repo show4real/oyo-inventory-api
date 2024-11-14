@@ -185,6 +185,12 @@ class PurchaseOrderController extends Controller
                 $payment ->balance = $amount;
                 $payment->payment_type = "CREDITOR";
                 $payment->save();
+
+                // update previous stock product price with the current price
+
+                PurchaseOrder::where('product_id', $purchase_order->product_id)
+                    ->update(['unit_selling_price' => $purchase_order->unit_selling_price]);
+
             }
         }
         return response()->json(compact('purchase_order'));
@@ -218,6 +224,25 @@ class PurchaseOrderController extends Controller
         $purchase_order->unit_selling_price = $request->unit_selling_price;
         $purchase_order->unit_price = $request->unit_price;
         $purchase_order->save();
+        
+        return response()->json(compact('purchase_order'), 200);
+    }
+
+    public function addMoreOrder(Request $request)
+    {
+       
+        $purchase_order = $this->purchase_order->findOrFail($request->id);
+        $purchase_order->stock_quantity = $purchase_order->stock_quantity + $request->quantity;
+        $purchase_order->quantity_moved = $purchase_order->quantity_moved + $request->quantity;
+
+        $purchase_order->save();
+
+
+        $stock= Stock::where('purchase_order_id', $request->id)->where('branch_id', $request->branch_id ?? 1)->first();
+        $prev_quantity= $stock !== null ? $stock->stock_quantity : 0;
+
+        $stock->stock_quantity = $request->quantity+$prev_quantity;
+        $stock->save();
         
         return response()->json(compact('purchase_order'), 200);
     }

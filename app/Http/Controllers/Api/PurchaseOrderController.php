@@ -221,9 +221,11 @@ class PurchaseOrderController extends Controller
     {
        
         $purchase_order = $this->purchase_order->findOrFail($request->id);
-        $purchase_order->unit_selling_price = $request->unit_selling_price;
         $purchase_order->unit_price = $request->unit_price;
         $purchase_order->save();
+
+        PurchaseOrder::where('product_id', $purchase_order->product_id)
+                    ->update(['unit_selling_price' => $request->unit_selling_price]);
         
         return response()->json(compact('purchase_order'), 200);
     }

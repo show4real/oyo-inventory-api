@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Client;
+use App\Invoice;
 use Validator;
 use App\User;
 
@@ -78,5 +79,25 @@ class ClientController extends Controller
         $client = Client::findOrFail($id);
         $client->delete();
         return response()->json(true);
+    }
+
+    public function clientPayments(Request $request){
+
+        $client_invoices_payments = Invoice::where('client_id', $request->client_id)
+            ->with('payments');
+            ->paginate($request->rows, ['*'], 'page', $request->page);
+
+        $clientInvoices = Invoice::where('client_id', $request->client_id)
+                ->get();
+
+        $invoice = Invoice::where('client_id', $request->client_id)->latest()->first();
+
+        $total_balance = $clientInvoices->sum('client_balance');
+        
+        $balance = $invoice->amount - $invoice->amount_paid;
+
+        $prev_balance = $total_balance - $balance;
+
+        return response()->json(compact('client_invoices_payments','total_balance','balance','prev_balance'));
     }
 }

@@ -157,6 +157,8 @@ function(){
     Route::post('updateclient/{client}', 'Api\ClientController@update');
     Route::post('cashiers', 'Api\ClientController@cashiers');
 
+    Route::post('clients/payments', 'Api\ClientController@clientPayments');
+
     Route::post('creditors', 'Api\CreditorController@index');
     Route::get('creditor/{id}', 'Api\CreditorController@show');
 

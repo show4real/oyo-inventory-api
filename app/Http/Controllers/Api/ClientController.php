@@ -85,6 +85,7 @@ class ClientController extends Controller
 
         $client_invoices_payments = Invoice::where('client_id', $request->client_id)
             ->with('payments')
+            ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
 
         $clientInvoices = Invoice::where('client_id', $request->client_id)
@@ -92,11 +93,25 @@ class ClientController extends Controller
 
         $invoice = Invoice::where('client_id', $request->client_id)->latest()->first();
 
-        $total_balance = $clientInvoices->sum('client_balance');
+        if($invoice){
+             
+            $total_balance = $clientInvoices->sum('client_balance');
         
-        $balance = $invoice->amount - $invoice->amount_paid;
+            $balance = $invoice->amount - $invoice->amount_paid;
 
-        $prev_balance = $total_balance - $balance;
+            $prev_balance = $total_balance - $balance;
+
+        } else {
+
+            $total_balance = 0;
+            $prev_balance = 0;
+            $balance = 0;
+        }
+
+        
+
+
+       
 
         return response()->json(compact('client_invoices_payments','total_balance','balance','prev_balance'));
     }

@@ -84,7 +84,7 @@ class ClientController extends Controller
     public function clientPayments(Request $request){
 
         $client_invoices_payments = Invoice::where('client_id', $request->client_id)
-            ->with('payments');
+            ->with('payments')
             ->paginate($request->rows, ['*'], 'page', $request->page);
 
         $clientInvoices = Invoice::where('client_id', $request->client_id)

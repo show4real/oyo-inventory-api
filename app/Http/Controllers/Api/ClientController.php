@@ -8,6 +8,7 @@ use App\Client;
 use App\Invoice;
 use Validator;
 use App\User;
+use App\Payment;
 
 class ClientController extends Controller
 {
@@ -107,12 +108,19 @@ class ClientController extends Controller
             $prev_balance = 0;
             $balance = 0;
         }
-
-        
-
-
-       
-
         return response()->json(compact('client_invoices_payments','total_balance','balance','prev_balance'));
+    }
+
+    public function updateClientOnPayment(){
+        
+        $payments = Payment::all();
+
+
+        foreach ($payments as $payment) {
+            $invoice = Invoice::find($payment->invoice_id);
+            if ($invoice) {
+                $payment->update(['client_id' => $invoice->client_id]);
+            }
+        }
     }
 }

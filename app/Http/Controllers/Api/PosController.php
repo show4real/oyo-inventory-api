@@ -92,6 +92,7 @@ class PosController extends Controller
             $payment->amount=$total_purchase;
             $payment->balance = $total_purchase - $request->amount_paid;
             $payment->invoice_id = $invoice->id;
+            $payment->client_id = $request->client_id;
             $payment->save(); 
             $update_pos =Pos::where('transaction_id',$transact_id)->update(['invoice_id' => $invoice->id]);
 
@@ -184,6 +185,7 @@ class PosController extends Controller
                 'amount_paid' => $request->amount_paid,
                 'amount' => $total_purchase,
                 'balance' => $total_purchase - $request->amount_paid,
+                'client_id' => $request->client_id
             ]);
 
             

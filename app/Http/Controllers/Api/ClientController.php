@@ -113,7 +113,7 @@ class ClientController extends Controller
 
     public function updateClientOnPayment(){
         
-        $payments = Payment::all();
+        $payments = Payment::get();
 
 
         foreach ($payments as $payment) {
@@ -122,5 +122,7 @@ class ClientController extends Controller
                 $payment->update(['client_id' => $invoice->client_id]);
             }
         }
+
+        return response()->json(compact('payments'));
     }
 }

@@ -174,6 +174,7 @@ class InvoiceController extends Controller
             $payment->amount=$request->total_amount;
             $payment->balance = $balance;
             $payment->invoice_id = $invoice->id;
+            $payment->client_id = $request->client_id;
             $payment->save();   
             $client= Client::where('id',$request->client_id)->first();
             $invoice = Invoice::with('client')->with('payments')->where('id', $invoice->id)->first();
@@ -224,7 +225,8 @@ class InvoiceController extends Controller
             ->update([
                 'amount_paid' => $request->amount_paid,
                 'amount' =>  $request->total_amount, 
-                'balance' =>  $request->balance
+                'balance' =>  $request->balance,
+                'client_id' => $request->client_id
             ]);
         
               

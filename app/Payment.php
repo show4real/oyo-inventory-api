@@ -24,7 +24,8 @@ class Payment extends Model
     public function getInvoiceNumAttribute()
     {
         $invoice= Invoice::where('id',$this->invoice_id)->first();
-        return $invoice->invoice_no;
+        if
+        return $invoice !== null ? $invoice->invoice_no : '';
     }
 
     public function scopeClient($query, $filter){

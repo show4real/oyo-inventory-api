@@ -23,14 +23,16 @@ class PaymentController extends Controller
         $total=$request->amount_paid + $request->previous_payment;
 
         $payment= new Payment();
+        $invoice=Invoice::where('id', $request->invoice_id)->first();
+
         $payment->amount_paid= $request->amount_paid;
         $payment->amount=$request->total_amount;
         $payment->balance = $new_balance;
         $payment->invoice_id = $request->invoice_id;
-        $payment->client_id = $request->client_id;
+        $payment->client_id = $invoice->client_id;
         $payment->save();
         
-        $invoice=Invoice::where('id', $request->invoice_id)->first();
+        
         $invoice->amount_paid =$total;
         $invoice->balance=$new_balance;
         $invoice->save();
@@ -50,7 +52,7 @@ class PaymentController extends Controller
         $payment->amount=$request->total_amount;
         $payment->balance = $new_balance;
         $payment->save();
-        
+
         $invoice=Invoice::where('id', $request->invoice_id)->first();
         $invoice->amount_paid = $request->amount_paid + $request->previous_payment;
         $invoice->balance=$new_balance;

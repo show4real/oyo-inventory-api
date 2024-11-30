@@ -33,7 +33,7 @@ class PaymentController extends Controller
         $payment->save();
 
 
-        $total_amount_paid = Payment::where('invoice_id', $request->invoice_id)->sum('paid');
+        $total_amount_paid = Payment::where('invoice_id', $request->invoice_id)->sum('amount_paid');
         
         $invoice->amount_paid =$total_amount_paid;
         $invoice->balance=$total_amount_paid - $invoice->amount;
@@ -60,7 +60,7 @@ class PaymentController extends Controller
 
        
 
-        $total_amount_paid = Payment::where('invoice_id', $request->invoice_id)->sum('paid');
+        $total_amount_paid = Payment::where('invoice_id', $request->invoice_id)->sum('amount_paid');
 
         $invoice=Invoice::where('id', $request->invoice_id)->first();
         $invoice->amount_paid = $total_amount_paid;

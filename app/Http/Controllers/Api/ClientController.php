@@ -107,7 +107,7 @@ class ClientController extends Controller
             $last_paid = $payment->amount_paid ?? 0;
 
             $total_paid = Payment::where('client_id', $request->client_id)->sum('amount_paid');
-            $total_amount = Payment::where('client_id', $request->client_id)->sum('amount');
+            $total_amount = Invoice::where('client_id', $request->client_id)->sum('amount');
 
         } else {
 

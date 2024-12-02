@@ -107,6 +107,7 @@ class ClientController extends Controller
             $last_paid = $payment->amount_paid ?? 0;
 
             $total_paid = Payment::where('client_id', $request->client_id)->sum('amount_paid');
+            $total_amount = Payment::where('client_id', $request->client_id)->sum('amount');
 
         } else {
 
@@ -114,7 +115,7 @@ class ClientController extends Controller
             $prev_balance = 0;
             $balance = 0;
         }
-        return response()->json(compact('client_invoices_payments','total_balance','balance','prev_balance','last_paid', 'total_paid'));
+        return response()->json(compact('client_invoices_payments','total_balance','balance','prev_balance','last_paid', 'total_paid','total_amount'));
     }
 
     public function updateClientOnPayment(){

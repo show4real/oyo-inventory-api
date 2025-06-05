@@ -212,6 +212,7 @@ function(){
     Route::post('bookings', 'Bookings\BookingController@store');
     Route::get('bookings', 'Bookings\BookingController@index');
     
+    
   });
 
 

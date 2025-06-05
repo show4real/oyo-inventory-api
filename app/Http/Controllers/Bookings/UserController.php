@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Bookings;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+
 use Validator;
 use App\User;
 use App\Branch;
@@ -11,17 +12,12 @@ use App\Branch;
 class UserController extends Controller
 {
     public function index(Request $request){
-        $users = User::where('organization_id', 1)->search($request->search)->latest()->paginate(10);
-        $branches=Branch::select('id','name')->get();
-        return response()->json(compact('users','branches'));
+        $users = User::where('organization_id', 0)->search($request->search)->latest()->paginate(10);
+    
+        return response()->json(compact('users'));
     }
 
-    public function show(User $user){
-        $authuser = auth()->user();
-        $user = User::where('id', $user->id)->first();
-        return response()->json(compact('user'),200);
-    }
-
+    
     public function save(Request $request){
         $validator = Validator::make($request->all(), [
             'email' => 'required|unique:users,email',
@@ -37,7 +33,7 @@ class UserController extends Controller
         $user->status =$request->status;
         $user->firstname = $request->firstname;
         $user->branch_id = $request->branch_id;
-        $user->organization_id = 1;
+        $user->organization_id = 0;
         $user->lastname = $request->lastname;
         $user->address=$request->address;
         $user->phone = $request->phone;
@@ -72,16 +68,11 @@ class UserController extends Controller
         $user->save();
         return response()->json(compact('user'));
     }
-    public function search(Request $request){
-        $users = User::search($request->search)->get();
 
-        return response()->json(compact('users'));
-    }
 
     public function delete($id, Request $request){
         $user = User::findOrFail($id);
         $user->delete();
         return response()->json(true);
     }
-
 }

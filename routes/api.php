@@ -33,6 +33,10 @@ Route::post('/sendrecovery', 'Api\ForgotPasswordController@sendrecovery');
 Route::group(['middleware'=>['jwt.auth','CheckAdmin']],
 function(){
 
+    Route::post('/games', 'GameController@store');
+    Route::put('/games/{game}', 'GameController@update');
+    Route::delete('/games/{game}', 'GameController@destroy');
+
     Route::post('dashboards', 'Api\DashboardController@index');
     Route::post('addcompany', 'Api\CompanySettingsController@save');
     Route::get('company', 'Api\CompanySettingsController@index');
@@ -175,37 +179,40 @@ function(){
 
 
   Route::group(['middleware'=>['jwt.auth']],
-function(){
-  Route::post('dashboards', 'Api\DashboardController@index');
-  Route::post('invoices2', 'Api\InvoiceController@index2');
-  Route::get('invoice2/{invoice}', 'Api\InvoiceController@show2');
-  Route::get('last_invoice', 'Api\InvoiceController@lastInvoice');
-  Route::post('addinvoice', 'Api\InvoiceController@save');
-  Route::post('updateinvoice/{invoice}', 'Api\InvoiceController@update');
+  function(){
+    Route::post('dashboards', 'Api\DashboardController@index');
+    Route::post('invoices2', 'Api\InvoiceController@index2');
+    Route::get('invoice2/{invoice}', 'Api\InvoiceController@show2');
+    Route::get('last_invoice', 'Api\InvoiceController@lastInvoice');
+    Route::post('addinvoice', 'Api\InvoiceController@save');
+    Route::post('updateinvoice/{invoice}', 'Api\InvoiceController@update');
 
-  Route::post('addpayment', 'Api\PaymentController@save');
-  Route::post('updatepayment', 'Api\PaymentController@update');
+    Route::post('addpayment', 'Api\PaymentController@save');
+    Route::post('updatepayment', 'Api\PaymentController@update');
 
-  Route::post('branch_stocks', 'Api\StockController@branchStocks');
+    Route::post('branch_stocks', 'Api\StockController@branchStocks');
 
-  Route::post('clients', 'Api\ClientController@index');
-  Route::get('client/{client}', 'Api\ClientController@show');
-  Route::post('addclient', 'Api\ClientController@save');
-  Route::post('deleteclient/{client}', 'Api\ClientController@delete');
-  Route::post('updateclient/{client}', 'Api\ClientController@update');
+    Route::post('clients', 'Api\ClientController@index');
+    Route::get('client/{client}', 'Api\ClientController@show');
+    Route::post('addclient', 'Api\ClientController@save');
+    Route::post('deleteclient/{client}', 'Api\ClientController@delete');
+    Route::post('updateclient/{client}', 'Api\ClientController@update');
 
-  Route::post('cashiers', 'Api\ClientController@cashiers');
+    Route::post('cashiers', 'Api\ClientController@cashiers');
 
-  Route::post('branch_stocks', 'Api\StockController@branchStocks');
-  Route::post('pos_order', 'Api\PosController@multPosOrder');
-  Route::post('pos_sales2', 'Api\PosController@getPosSales2');
-  Route::post('transaction_details2', 'Api\PosController@getTransactionDetails2');
-  Route::get('company', 'Api\CompanySettingsController@index');
+    Route::post('branch_stocks', 'Api\StockController@branchStocks');
+    Route::post('pos_order', 'Api\PosController@multPosOrder');
+    Route::post('pos_sales2', 'Api\PosController@getPosSales2');
+    Route::post('transaction_details2', 'Api\PosController@getTransactionDetails2');
+    Route::get('company', 'Api\CompanySettingsController@index');
 
 
-   
-    }
-  );
+
+    Route::get('games', 'Game\GameController@index');
+    Route::post('bookings', 'Game\BookingController@store');
+    Route::get('bookings', 'Game\BookingController@index');
+    
+  });
 
 
 

@@ -33,9 +33,9 @@ Route::post('/sendrecovery', 'Api\ForgotPasswordController@sendrecovery');
 Route::group(['middleware'=>['jwt.auth','CheckAdmin']],
 function(){
 
-    Route::post('/games', 'GameController@store');
-    Route::put('/games/{game}', 'GameController@update');
-    Route::delete('/games/{game}', 'GameController@destroy');
+    Route::post('/games', 'Bookings\GameController@store');
+    Route::put('/games/{game}', 'Bookings\GameController@update');
+    Route::delete('/games/{game}', 'Bookings\GameController@destroy');
 
     Route::post('dashboards', 'Api\DashboardController@index');
     Route::post('addcompany', 'Api\CompanySettingsController@save');
@@ -208,9 +208,9 @@ function(){
 
 
 
-    Route::get('games', 'Game\GameController@index');
-    Route::post('bookings', 'Game\BookingController@store');
-    Route::get('bookings', 'Game\BookingController@index');
+    Route::get('games', 'Bookings\GameController@index');
+    Route::post('bookings', 'Bookings\BookingController@store');
+    Route::get('bookings', 'Bookings\BookingController@index');
     
   });
 

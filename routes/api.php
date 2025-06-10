@@ -35,7 +35,20 @@ function(){
 
     Route::post('/games', 'Bookings\GameController@store');
     Route::put('/games/{game}', 'Bookings\GameController@update');
-    Route::delete('/games/{game}', 'Bookings\GameController@destroy');
+    Route::post('/delete-games/{game}', 'Bookings\GameController@destroy');
+    Route::post('/deletebooking/{id}', 'Bookings\BookingController@destroy');
+
+
+
+
+    Route::post('bookings/users', 'Bookings\UserController@index');
+    Route::get('bookings/user/{user}', 'Bookings\UserController@show');
+    Route::post('bookings/adduser', 'Bookings\UserController@save');
+    Route::post('bookings/deleteuser/{user}', 'Bookings\UserController@delete');
+    Route::post('bookings/searchusers', 'Bookings\UserController@search');
+    Route::post('bookings/updateuser/{user}', 'Bookings\UserController@update');
+
+
 
     Route::post('dashboards', 'Api\DashboardController@index');
     Route::post('addcompany', 'Api\CompanySettingsController@save');
@@ -208,10 +221,13 @@ function(){
 
 
 
-    Route::get('games', 'Bookings\GameController@index');
+    Route::post('allgames', 'Bookings\GameController@index');
     Route::post('bookings', 'Bookings\BookingController@store');
-    Route::get('bookings', 'Bookings\BookingController@index');
-    
+    Route::post('all-bookings', 'Bookings\BookingController@index');
+
+    Route::get('bookings/{id}', 'Bookings\BookingController@getBooking');
+    Route::post('bookings/dashboards', 'Bookings\BookingController@dashboard');
+
     
   });
 

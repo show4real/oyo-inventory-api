@@ -10,7 +10,9 @@ class GameController extends Controller
 {
     public function index()
     {
-        return Game::all();
+        $games = Game::get();
+
+        return response()->json(compact('games'));
     }
 
     public function store(Request $request)

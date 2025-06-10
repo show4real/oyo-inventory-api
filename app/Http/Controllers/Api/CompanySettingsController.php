@@ -11,7 +11,11 @@ use Storage;
 class CompanySettingsController extends Controller
 {
     public function index(Request $request){
-        $company = CompanySettings::first();
+        $user = auth()->user();
+        
+        $company = $user->organization_id == 1
+        ? CompanySettings::first()
+        : CompanySettings::skip(1)->first();
         return response()->json(compact('company'));
 
     }
@@ -19,7 +23,12 @@ class CompanySettingsController extends Controller
   
 
     public function save(Request $request){
-        $company= CompanySettings::first();
+
+        $user = auth()->user();
+        $company = $user->organization_id == 1
+        ? CompanySettings::first()
+        : CompanySettings::skip(1)->first();
+
         $folder = "/logo/";
         $data = $request->data;
        

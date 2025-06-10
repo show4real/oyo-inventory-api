@@ -6,62 +6,133 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Game;
 use App\Booking;
+use App\BookingTransaction;
+use App\User;
 
 class BookingController extends Controller
 {
     public function store(Request $request)
     {
         $request->validate([
-            'game_id' => 'required|exists:games,id',
-            'rounds' => 'required|integer|min:1',
-            'price' => 'required|integer',
+            'bookings' => 'required|array|min:1',
+            'bookings.*.id' => 'required|exists:games,id',
+            'bookings.*.quantity' => 'required|integer|min:1',
+            //'bookings.*.price' => 'required|integer|min:0',
         ]);
 
-        $game = Game::findOrFail($request->game_id);
+        $sessionId = time();
+        $cashierId = auth()->user()->id;
+        $playedAt = now();
 
+        $createdBookings = [];
+        $totalSales = 0;
 
-        $booking = Booking::create([
-            'session_id' => time(),
-            'game_id' => $game->id,
-            'rounds' => $request->rounds,
-            'price_per_round' => $request->price,
-            'total_price' => $request->price * $request->rounds,
-            'played_at' => now(),
-            'cashier_id' => auth()->user()->id
+        foreach ($request->bookings as $booking) {
+            $totalPrice = $booking['price'] * $booking['quantity'];
+            $totalSales += $totalPrice;
+
+            $createdBookings[] = Booking::create([
+                'session_id' => $sessionId,
+                'game_id' => $booking['id'],
+                'rounds' => $booking['quantity'],
+                'price_per_round' => $booking['price'],
+                'total_price' => $totalPrice,
+                'played_at' => $playedAt,
+                'cashier_id' => $cashierId,
+            ]);
+        }
+
+       
+        $transaction = BookingTransaction::create([
+            'session_id' => $sessionId,
+            'total_price' => $totalSales,
+            'cashier_id' => $cashierId,
+            'payment_mode' => $request->payment_mode
         ]);
 
-        return response()->json($booking, 201);
+        return response()->json([
+            'session_id' => $sessionId,
+            'bookings' => $createdBookings,
+            'transaction' => $transaction,
+        ], 201);
     }
+
+    public function getBooking(Request $request, $id){
+        
+        $transaction = BookingTransaction::where('id', $id)->first();
+
+        $bookings = Booking::where('session_id', $transaction->session_id)->get();
+
+        return response()->json(compact('transaction', 'bookings'));
+
+    }
+
+
 
     public function index(Request $request)
     {
-        $query = Booking::with('game')->latest();
+        $query = BookingTransaction::latest();
 
-    
-        if ($request->filled('from') && $request->filled('to')) {
-            $query->dateBetween($request->from, $request->to);
+        if ($request->filled('fromdate') && $request->filled('todate')) {
+            $query->dateBetween($request->fromdate, $request->todate);
         }
 
         if ($request->filled('cashier_id')) {
             $query->soldBy($request->cashier_id);
         }
 
-        $totalSales = $query->clone()->sum('total_price');
-        $bookings = $query->paginate(10);
+        
+        if ($request->filled('search')) {
+            $query->search($request->search);
+        }
+
+        $totalSales = $query->sum('total_price');
+
+        $perPage = $request->input('rows', 10);
+        $bookings = $query->paginate($perPage);
+
+        $cashiers = User::where('organization_id', 0)
+            ->select('id', 'firstname', 'lastname')
+            ->get();
 
         return response()->json([
-            'data' => $bookings,
+            'bookings' => $bookings,
             'total_sales' => $totalSales,
+            'cashiers' => $cashiers
         ]);
-
-        return response()->json($bookings);
     }
 
     public function destroy($id)
     {
-        $booking = Booking::findOrFail($id);
-        $booking->delete();
+        $bookingTransaction = BookingTransaction::where('session_id', $id)->first();
+
+        if (!$bookingTransaction) {
+            return response()->json(['message' => 'Booking transaction not found'], 404);
+        }
+
+        $bookings = Booking::where('session_id', $bookingTransaction->session_id)->get();
+
+        foreach ($bookings as $booking) {
+            $booking->delete();
+        }
+
+        $bookingTransaction->delete();
 
         return response()->json(['message' => 'Booking deleted']);
     }
+
+
+    public function dashboard(){
+
+        $user_count = User::where('organization_id', 0)->count();
+        $game_count = Game::count();
+        $total_sales = BookingTransaction::sum('total_price');
+
+
+        return response()->json(compact('user_count','game_count','total_sales'));
+
+
+    }
+
+
 }

@@ -8,10 +8,14 @@ class Booking extends Model
 {
     protected $fillable = [
         'session_id', 'game_id', 'rounds',
-        'price_per_round', 'total_price', 'played_at'
+        'price_per_round', 'total_price', 'played_at','cashier_id'
     ];
 
-    protected $appends = ['cashier'];
+    protected $appends = ['cashier', 'name'];
+
+    protected $casts = [
+        'price_per_round' => 'integer',
+    ];
 
     public function game()
     {
@@ -24,6 +28,14 @@ class Booking extends Model
 
         return $cashier->name ?? 'N/A';
     }
+
+    public function getNameAttribute(){
+       
+        $game = Game::where('id', $this->game_id)->first();
+
+        return $game->name ?? 'N/A';
+    }
+
 
     public function scopeSoldBy($query, $cashierId)
     {

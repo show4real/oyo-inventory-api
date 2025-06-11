@@ -28,7 +28,10 @@ class LoginController extends Controller
 
     //return $this->respondWithToken($token);
     $user = User::where('id', $userFromToken->id)->first();
-    $company=CompanySettings::first();
+        
+    $company = $user->organization_id == 1
+        ? CompanySettings::first()
+        : CompanySettings::skip(1)->first();
 
     return response()->json([
         'user' => $user,

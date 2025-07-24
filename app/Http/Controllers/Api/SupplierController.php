@@ -18,7 +18,8 @@ class SupplierController extends Controller
     }
 
     public function index(Request $request){
-        $suppliers = Supplier::withCount('orders')
+        $suppliers = Supplier::where('organization_id', auth()->user()->organization_id)
+            ->withCount('orders')
             ->search($request->search)
             ->paginate($request->rows, ['*'], 'page', $request->page);
         return response()->json(compact('suppliers'));
@@ -46,7 +47,8 @@ class SupplierController extends Controller
                 ],
 
                 ['name'=>$values,
-                'supplier_id'=>"SUP-TRK-" . strtoupper(Str::random(5))
+                'supplier_id'=>"SUP-TRK-" . strtoupper(Str::random(5)),
+                'organization_id' => auth()->user()->organization_id
                 ]
             );
         }

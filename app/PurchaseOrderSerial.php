@@ -7,7 +7,7 @@ use App\Branch;
 
 class PurchaseOrderSerial extends Model
 {
-    protected $fillable = ['purchase_order_id', 'moved_at','branch_moved_to','serial_no'];
+    protected $fillable = ['purchase_order_id', 'moved_at','branch_moved_to','serial_no','organization_id'];
 
     protected $appends = ['branch_name'];
     public function scopeGetPurchaseOrderSerials($query,$request){

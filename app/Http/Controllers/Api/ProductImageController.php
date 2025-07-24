@@ -13,7 +13,7 @@ class ProductImageController extends Controller
 {
     public function store($product_id,Request $request)
     {
-        $product_name=Product::where('id',$product_id)->first()->name;
+        $product_name=Product::where('organization_id', auth()->user()->organization_id)->where('id',$product_id)->first()->name;
         $check=ProductImage::where('product_id',$product_id)->get();
         $folder = "/productimages/";
         $data = $request->data;

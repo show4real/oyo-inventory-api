@@ -134,6 +134,9 @@ function(){
     Route::post('purchase_order/serials', 'Api\PurchaseOrderSerialController@getSerials');
     Route::post('purchase_order/editprice', 'Api\PurchaseOrderController@editPrice');
     Route::post('purchase_order/add-more', 'Api\PurchaseOrderController@addMoreOrder');
+    Route::post('purchase_order/add-barcode', 'Api\PurchaseOrderController@addBarcode');
+
+    Route::post('purchase_order/add-more2', 'Api\PurchaseOrderController@addMoreOrder2');
 
     
 

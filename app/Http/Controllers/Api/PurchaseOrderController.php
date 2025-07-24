@@ -36,6 +36,7 @@ class PurchaseOrderController extends Controller
     public function index($product_id,Request $request)
     {
         $purchase_orders=$this->purchase_order
+        ->where('organization_id', auth()->user()->organization_id)
         ->where('product_id',$product_id)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
@@ -49,14 +50,15 @@ class PurchaseOrderController extends Controller
     }
     public function purchaseOrders(Request $request)
     {
-        $purchase_orders=PurchaseOrder::filter1($request->get('fromdate'))
+        $purchase_orders=PurchaseOrder::where('organization_id', auth()->user()->organization_id)
+        ->filter1($request->get('fromdate'))
         ->filter2($request->get('todate'))
         ->search($request->search)
         ->order($request->order)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
-        $total_purchase=$this->purchase_order::getSales($request);
+        $total_purchase=$this->purchase_order::where('organization_id', auth()->user()->organization_id)->getSales($request);
        
        
 
@@ -67,18 +69,19 @@ class PurchaseOrderController extends Controller
     public function stocks(Request $request)
     {
         $stocks=$this->purchase_order
-        
+        ->where('organization_id', auth()->user()->organization_id)
         ->search($request->search)
         ->order($request->order)
         ->branch($request->branch)
         ->where('confirmed_at','!=',null)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
-        $suppliers=Supplier::select('id','name')->get();
-        $branches=Branch::select('id','name')->get();
-        $products=Product::select('id','name')->get();
+        $suppliers=Supplier::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
+        $branches=Branch::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
+        $products=Product::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
 
-        $total_stock=PurchaseOrder::where('confirmed_at','!=',null)
+        $total_stock=PurchaseOrder::where('organization_id', auth()->user()->organization_id)
+        ->where('confirmed_at','!=',null)
         ->select(DB::raw('sum(stock_quantity * unit_price) as total'))->get();
 
         return response()->json(compact('stocks','products','total_stock','suppliers','branches'));
@@ -102,8 +105,8 @@ class PurchaseOrderController extends Controller
         $attributes= $this->attributes->getAttributes($request);
         $purchase_order_serials= $this->purchase_order_serials->getPurchaseorderSerials($request);
         
-        $suppliers=Supplier::select('id','name')->get();
-        $branches=Branch::select('id','name')->get();
+        $suppliers=Supplier::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
+        $branches=Branch::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
         
         return response()->json(compact('purchase_order','purchase_order_serials','attributes','suppliers','branches'));
         
@@ -122,6 +125,7 @@ class PurchaseOrderController extends Controller
             $purchase_order->warehouse_id = $request->warehouse_id;
             $purchase_order->stock_quantity = $request->stock_quantity;
             $purchase_order->tracking_id = "TRK-" . strtoupper(Str::random(5));
+            $purchase_order->organization_id = auth()->user()->organization_id;
             $purchase_order->save();
             return response()->json(compact('purchase_order'),200);
        
@@ -154,12 +158,14 @@ class PurchaseOrderController extends Controller
             $purchase_order->received_at = null;
             $purchase_order->quantity_returned = 0;
             $purchase_order->quantity_moved=0;
+            $purchase_order->organization_id = auth()->user()->organization_id;
             $purchase_order->save();
         }else{
             $purchase_order->received_at = Carbon::parse($request->received_at);
             $purchase_order->rejected_at = null;
             $purchase_order->unit_selling_price = str_replace(',', '', $request->selling_price);
             $purchase_order->confirmed_at = now();
+            $purchase_order->organization_id = auth()->user()->organization_id;
             $save = $purchase_order->save();
             if($save){
             
@@ -176,6 +182,7 @@ class PurchaseOrderController extends Controller
                 $creditor->purchase_order_id = $purchase_order->id;
                 $creditor->amount = $amount;
                 $creditor->supplier_id = $purchase_order->supplier_id;
+                $creditor->organization_id = auth()->user()->organization_id;
                 $creditor->save();
 
                 $payment = new CreditorPayment();
@@ -184,11 +191,13 @@ class PurchaseOrderController extends Controller
                 $payment->creditor_id = $creditor->id;
                 $payment ->balance = $amount;
                 $payment->payment_type = "CREDITOR";
+                $payment->organization_id = auth()->user()->organization_id;
                 $payment->save();
 
                 // update previous stock product price with the current price
 
-                PurchaseOrder::where('product_id', $purchase_order->product_id)
+                PurchaseOrder::where('organization_id', auth()->user()->organization_id)
+                    ->where('product_id', $purchase_order->product_id)
                     ->update(['unit_selling_price' => $purchase_order->unit_selling_price]);
 
             }
@@ -224,8 +233,19 @@ class PurchaseOrderController extends Controller
         $purchase_order->unit_price = $request->unit_price;
         $purchase_order->save();
 
-        PurchaseOrder::where('product_id', $purchase_order->product_id)
-                    ->update(['unit_selling_price' => $request->unit_selling_price]);
+        PurchaseOrder::where('organization_id', auth()->user()->organization_id)
+                ->where('product_id', $purchase_order->product_id)
+                ->update(['unit_selling_price' => $request->unit_selling_price]);
+        
+        return response()->json(compact('purchase_order'), 200);
+    }
+
+     public function addBarcode(Request $request)
+    {
+       
+        $purchase_order = $this->purchase_order->findOrFail($request->id);
+        $purchase_order->barcode = $request->barcode;
+        $purchase_order->save();
         
         return response()->json(compact('purchase_order'), 200);
     }
@@ -233,18 +253,29 @@ class PurchaseOrderController extends Controller
     public function addMoreOrder(Request $request)
     {
        
-        $purchase_order = $this->purchase_order->findOrFail($request->id);
+        $purchase_order = $this->purchase_order->where('organization_id', auth()->user()->organization_id)->findOrFail($request->id);
         $purchase_order->stock_quantity = $purchase_order->stock_quantity + $request->quantity;
         $purchase_order->quantity_moved = $purchase_order->quantity_moved + $request->quantity;
 
         $purchase_order->save();
 
 
-        $stock= Stock::where('purchase_order_id', $request->id)->where('branch_id', $request->branch_id ?? 1)->first();
+        $stock= Stock::where('purchase_order_id', $request->id)->where('branch_id', $request->branch_id)->first();
         $prev_quantity= $stock !== null ? $stock->stock_quantity : 0;
+        $stock->organization_id = auth()->user()->organization_id;
 
         $stock->stock_quantity = $request->quantity+$prev_quantity;
         $stock->save();
+        
+        return response()->json(compact('purchase_order'), 200);
+    }
+
+    public function addMoreOrder2(Request $request)
+    {
+       
+        $purchase_order = PurchaseOrder::findOrFail($request->id);
+        $purchase_order->stock_quantity = $purchase_order->stock_quantity + $request->quantity;
+        $purchase_order->save();
         
         return response()->json(compact('purchase_order'), 200);
     }
@@ -255,7 +286,7 @@ class PurchaseOrderController extends Controller
     public function moveOrder($id, Request $request)
     {
        
-        $purchase_order = $this->purchase_order->findOrFail($id);
+        $purchase_order = $this->purchase_order->where('organization_id', auth()->user()->organization_id)->findOrFail($id);
         $purchase_order->quantity_moved =$purchase_order->quantity_moved+$request->quantity_moved;
         $purchase_order->save();
 
@@ -263,11 +294,11 @@ class PurchaseOrderController extends Controller
         $prev_quantity= $stock !== null ? $stock->stock_quantity : 0;
 
         $quantity_moved = $request->quantity_moved+$prev_quantity;
-        $new_stock = Stock::updateOrCreate(
+        $new_stock = Stock::where('organization_id', auth()->user()->organization_id)->updateOrCreate(
 
             ['purchase_order_id' => $id,'branch_id' => request('branch_id')],
             ['stock_quantity' => $quantity_moved, 'product_id' =>$purchase_order->product_id, 
-            'supplier_id' => $purchase_order->supplier_id]
+            'supplier_id' => $purchase_order->supplier_id,'organization_id' => auth()->user()->organization_id]
         
         );
 

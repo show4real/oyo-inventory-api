@@ -26,6 +26,7 @@ class RegisterController extends Controller
         //$user->status =$request->status;
         $user->firstname = $request->firstname;
         $user->lastname = $request->lastname;
+        $user->organization_id = auth()->user()->organization_id,
         $user->address=$request->address;
         $user->phone = $request->phone;
         $user->email = $request->email;

@@ -34,18 +34,21 @@ class StockController extends Controller
 
     public function stocks(Request $request)
     {
-        $stocks=Stock::where('branch_id', $request->branch_id)->search($request->search)
+        $stocks=Stock::where('organization_id', auth()->user()->organization_id)->where('branch_id', $request->branch_id)->search($request->search)
         ->product($request->order)
         ->with('order')
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
+        
 
-        $branch = Branch::where('id',$request->branch_id)->first()->name;
+        $branch = Branch::where('organization_id', auth()->user()->organization_id)->where('id',$request->branch_id)->first()->name;
         $product = $request->order !== null ? Product::where('id', $request->order)->first()->name : '';
 
-        $suppliers=Supplier::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
+        $suppliers=Supplier::where('organization_id', auth()->user()->organization_id)
+        ->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
         
-        $products=Product::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
+        $products=Product::where('organization_id', auth()->user()->organization_id)
+        ->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
       
        
         return response()->json(compact('stocks','products','suppliers','branch','product'));
@@ -56,7 +59,8 @@ class StockController extends Controller
     {
         $user= auth()->user();
         if($user->admin === 1){
-            $stocks=Stock::search($request->search)
+            $stocks=Stock::where('organization_id', auth()->user()->organization_id)
+            ->search($request->search)
             ->availableStock()
             ->product($request->order)
             ->with('order')
@@ -64,7 +68,8 @@ class StockController extends Controller
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
         } else {
-            $stocks=Stock::where('branch_id', $user->branch_id)
+            $stocks=Stock::where('organization_id', auth()->user()->organization_id)
+            ->where('branch_id', $user->branch_id)
             ->search($request->search)
             ->availableStock()
             ->product($request->order)
@@ -74,9 +79,9 @@ class StockController extends Controller
             ->paginate($request->rows, ['*'], 'page', $request->page);
         }
       
-        $suppliers=Supplier::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
-        $products=Product::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
-        $branches=Branch::select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
+        $suppliers=Supplier::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
+        $products=Product::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
+        $branches=Branch::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
 
         
        
@@ -88,7 +93,8 @@ class StockController extends Controller
 
     public function stocks2(Request $request){
 
-        $stocks=Stock::search($request->search)
+        $stocks=Stock::where('organization_id', auth()->user()->organization_id)
+            ->search($request->search)
             ->availableStock()
             ->product($request->order)
             ->with('order')
@@ -96,9 +102,9 @@ class StockController extends Controller
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
 
-        $prev_invoice = Invoice::where('id', $request->invoice_id)->first();
+        $prev_invoice = Invoice::where('organization_id', auth()->user()->organization_id)->where('id', $request->invoice_id)->first();
 
-        $pos_items = Pos::where('invoice_id', $request->invoice_id)
+        $pos_items = Pos::where('organization_id', auth()->user()->organization_id)->where('invoice_id', $request->invoice_id)
                 ->select('stock_id', 'qty_sold','unit_selling_price')
                 ->get()
                 ->keyBy('stock_id');
@@ -123,9 +129,10 @@ class StockController extends Controller
     public function show(Request $request, $order){
         $user= auth()->user();
         if( $user->admin === 1 ){
-            $stock = Stock::where('id', $order)->with('order')->firstOrFail();
+            $stock = Stock::where('organization_id', auth()->user()->organization_id)->where('id', $order)->with('order')->firstOrFail();
         } else {
-            $stock= Stock::where('id', $order)
+            $stock= Stock::where('organization_id', auth()->user()->organization_id)
+            ->where('id', $order)
             ->where('branch_id', $user->branch_id)->first();
         }
 
@@ -164,7 +171,7 @@ class StockController extends Controller
 
     public function returnStock(Request $request){
         
-        $stock= Stock::find($request->stock_id);
+        $stock= Stock::where('organization_id', auth()->user()->organization_id)->find($request->stock_id);
 
         if($request->selectedSerials){
             foreach($request->selectedSerials as $serial_ids){
@@ -174,9 +181,10 @@ class StockController extends Controller
     
             $quantity_returned = count($stock_serial_ids);
             $stock->quantity_returned = $stock->quantity_returned+$quantity_returned;
+            $stock->organization_id = auth()->user()->organization_id;
             $stock->save();
     
-            $purchase_order = PurchaseOrder::find($stock->purchase_order_id);
+            $purchase_order = PurchaseOrder::where('organization_id', auth()->user()->organization_id)->find($stock->purchase_order_id);
             $purchase_order->quantity_moved = $purchase_order->quantity_moved - $quantity_returned;
             $purchase_order->save();
     

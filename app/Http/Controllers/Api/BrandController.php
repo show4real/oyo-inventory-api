@@ -11,7 +11,7 @@ use Validator;
 class BrandController extends Controller
 {
     public function index(Request $request){
-        $brands = Brand::withCount('products')
+        $brands = Brand::where('organization_id', auth()->user()->organization_id)->withCount('products')
             ->search($request->search)
             ->paginate(10);
         return response()->json(compact('brands'));

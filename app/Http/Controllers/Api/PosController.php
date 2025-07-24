@@ -27,13 +27,13 @@ class PosController extends Controller
     }
 
     public function multPosOrder(Request $request){
-        $currency = CompanySettings::first()->currency;
+        $currency = CompanySettings::where('organization_id', auth()->user()->organization_id)->first()->currency;
         $sale_orders=[];
         $pos_order=[];
         $payment_mode = $request->payment_mode;
         
         $transact_id="TRANSAC-".strtoupper(Str::random(15));
-        $sell_by_serial_no= CompanySettings::first()->sell_by_serial_no;
+        $sell_by_serial_no= CompanySettings::where('organization_id', auth()->user()->organization_id)->first()->sell_by_serial_no;
         if($request->cart_items){
             $v=$request->cart_items;
             $total_purchase = 0;
@@ -66,6 +66,7 @@ class PosController extends Controller
 
                 $pos_order->payment_mode=$payment_mode;
                 $pos_order->channel='pos_order';
+                $pos_order->organization_id = auth()->user()->organization_id;
                 $pos_order->save();
                 $sold_at=now();
             }
@@ -75,6 +76,7 @@ class PosController extends Controller
             $invoice->invoice_no=$request->invoice_no;
             $invoice->transaction_id = $transact_id;
             $invoice->cashier_id=auth()->user()->id;
+            $invoice->organization_id = auth()->user()->organization_id;
             $invoice->description = "Sales from POS Menu";
             $invoice->payment_type = "POS";
             $invoice->client_id = $request->client_id;
@@ -93,17 +95,18 @@ class PosController extends Controller
             $payment->balance = $total_purchase - $request->amount_paid;
             $payment->invoice_id = $invoice->id;
             $payment->client_id = $request->client_id;
+            $payment->organization_id = auth()->user()->organization_id;
             $payment->save(); 
-            $update_pos =Pos::where('transaction_id',$transact_id)->update(['invoice_id' => $invoice->id]);
+            $update_pos =Pos::where('organization_id', auth()->user()->organization_id)->where('transaction_id',$transact_id)->update(['invoice_id' => $invoice->id]);
 
             //$pos_sales=Pos::where('transaction_id',$transact_id)->with('stock')->with('order')->get();
-            $invoice = Invoice::where('id', $invoice->id)
+            $invoice = Invoice::where('organization_id', auth()->user()->organization_id)->where('id', $invoice->id)
             ->with('payments')
             ->with('client')
             ->first();
-            $pos_items = Pos::where('invoice_id', $invoice->id)->with('stock')->with('order')->get();
+            $pos_items = Pos::where('organization_id', auth()->user()->organization_id)->where('invoice_id', $invoice->id)->with('stock')->with('order')->get();
 
-            $invoices = Invoice::where('client_id', $invoice->client_id)->get();
+            $invoices = Invoice::where('organization_id', auth()->user()->organization_id)->where('client_id', $invoice->client_id)->get();
 
             
             $balance = $total_purchase - $request->amount_paid;
@@ -124,7 +127,7 @@ class PosController extends Controller
     public function editMultPosOrder(Request $request)
     {
         
-        $invoice = Invoice::with(['payments', 'client'])->findOrFail($request->invoice_id);
+        $invoice = Invoice::where('organization_id', auth()->user()->organization_id)->with(['payments', 'client'])->findOrFail($request->invoice_id);
 
         
         $posRecords = Pos::where('invoice_id', $invoice->id)->get();
@@ -162,6 +165,7 @@ class PosController extends Controller
                     'cashier_id' => auth()->user()->id,
                     'payment_mode' => $payment_mode,
                     'channel' => 'pos_order',
+                    'organization_id' => auth()->user()->organization_id
                 ]);
             }
 
@@ -177,25 +181,27 @@ class PosController extends Controller
                 'amount_paid' => $request->amount_paid,
                 'balance' => $total_purchase - $request->amount_paid,
                 'payment_mode' => $payment_mode,
+                'organization_id' => auth()->user()->organization_id
             ]);
 
             
-            $payment = Payment::where('invoice_id', $request->invoice_id)->first();
+            $payment = Payment::where('organization_id', auth()->user()->organization_id)->where('invoice_id', $request->invoice_id)->first();
             $payment->update([
                 'amount_paid' => $request->amount_paid,
                 'amount' => $total_purchase,
                 'balance' => $total_purchase - $request->amount_paid,
-                'client_id' => $request->client_id
+                'client_id' => $request->client_id,
+                'organization_id' => auth()->user()->organization_id
             ]);
 
             
             Pos::where('transaction_id', $transact_id)->update(['invoice_id' => $invoice->id]);
 
             
-            $pos_items = Pos::where('invoice_id', $invoice->id)->with(['stock', 'order'])->get();
+            $pos_items = Pos::where('organization_id', auth()->user()->organization_id)->where('invoice_id', $invoice->id)->with(['stock', 'order'])->get();
 
            
-            $invoices = Invoice::where('client_id', $invoice->client_id)->get();
+            $invoices = Invoice::where('organization_id', auth()->user()->organization_id)->where('client_id', $invoice->client_id)->get();
 
             $total_balance = $invoices->sum('client_balance');
 
@@ -212,15 +218,16 @@ class PosController extends Controller
 
 
     public function products(Request $request){
-        $products = Product::select('id','name')->get();
+        $products = Product::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
         return response()->json(compact('products'));
     }
 
     public function getPosSales(Request $request)
     {
         
-        $users= User::select('id','firstname','lastname')->get();
+        $users= User::where('organization_id', auth()->user()->organization_id)->select('id','firstname','lastname')->get();
         $pos_sales=$this->pos
+        ->where('organization_id', auth()->user()->organization_id)
         ->search($request->search)
         ->order($request->order)
         ->employee($request->user)
@@ -231,7 +238,9 @@ class PosController extends Controller
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
         
-        $sales=$this->pos->search($request->search)
+        $sales=$this->pos
+        ->where('organization_id', auth()->user()->organization_id)
+        ->search($request->search)
         ->order($request->order)
         ->employee($request->user)
         ->product($request->product)
@@ -256,10 +265,11 @@ class PosController extends Controller
     public function getPosSales2(Request $request)
     {
         $user=auth()->user()->id;
-        $users= User::select('id','firstname','lastname')->get();
+        $users= User::where('organization_id', auth()->user()->organization_id)->select('id','firstname','lastname')->get();
        
 
         $pos_sales=$this->pos
+        ->where('organization_id', auth()->user()->organization_id)
         ->where('cashier_id', $user)
         ->search($request->search)
         ->order($request->order)
@@ -276,6 +286,7 @@ class PosController extends Controller
 
     public function getTransactionDetails(Request $request){
         $transaction_detail=$this->pos
+        ->where('organization_id', auth()->user()->organization_id)
         ->where('transaction_id', $request->transaction_id)
         ->with('stock')->with('order')->get();
         $invoice = Invoice::where('transaction_id', $request->transaction_id)->first();
@@ -284,6 +295,7 @@ class PosController extends Controller
 
     public function getTransactionDetails2(Request $request){
         $transaction_detail=$this->pos
+        ->where('organization_id', auth()->user()->organization_id)
         ->where('cashier_id', auth()->user()->id)
         ->where('transaction_id', $request->transaction_id)
         ->with('stock')->with('order')->get();

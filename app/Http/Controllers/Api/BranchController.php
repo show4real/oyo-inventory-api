@@ -12,7 +12,7 @@ use App\Branch;
 class BranchController extends Controller
 {
     public function index(Request $request){
-        $branches = Branch::withCount('stocks')
+        $branches = Branch::where('organization_id', auth()->user()->organization_id)->withCount('stocks')
             ->with('stocks')
             ->search($request->search)
             ->paginate($request->rows, ['*'], 'page', $request->page);
@@ -29,11 +29,13 @@ class BranchController extends Controller
         foreach($request->name as $values) {
 
             $branches[] = Branch::updateOrCreate(
-                ['name' => $values, 
+                ['name' => $values,
+                  'organization_id' => auth()->user()->organization_id
                 ],
 
                 ['name'=>$values,
-                'branch_id'=>"BRCH-TRK-" . strtoupper(Str::random(10))
+                'branch_id'=>"BRCH-TRK-" . strtoupper(Str::random(10)),
+                'organization_id' => auth()->user()->organization_id
                 ]
             );
         }

@@ -17,8 +17,8 @@ class InvoiceController extends Controller
 {
     public function index(Request $request){
        
-       $invoices = Invoice::
-        search($request->search)
+       $invoices = Invoice::where('organization_id', auth()->user()->organization_id)
+        ->search($request->search)
         ->filter1($request->get('fromdate'))
         ->currency($request->currency)
         ->filter2($request->get('todate'))
@@ -27,9 +27,9 @@ class InvoiceController extends Controller
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
-        $company= CompanySettings::first();
+        $company= CompanySettings::where('organization_id', auth()->user()->organization_id)->first();
 
-        $sales=Invoice::search($request->search)
+        $sales=Invoice::where('organization_id', auth()->user()->organization_id)->search($request->search)
         // ->filter1($request->get('fromdate'))
         // ->filter2($request->get('todate'))
         ->order($request->order)
@@ -47,14 +47,14 @@ class InvoiceController extends Controller
              $total_balance+=$balance;
              $total_discount+=$discount;
         }
-        $cashiers = User::get();
+        $cashiers = User::where('organization_id', auth()->user()->organization_id)->get();
         return response()->json(compact('invoices','company','total_sales','total_balance','total_discount','cashiers'));
     }
 
     public function index2(Request $request){
         $cashier=auth()->user()->id;
-        $invoices = Invoice::
-        where('cashier_id', $cashier)
+        $invoices = Invoice::where('organization_id', auth()->user()->organization_id)
+        ->where('cashier_id', $cashier)
         ->search($request->search)
         ->currency($request->currency)
         // ->filter1($request->get('fromdate'))
@@ -62,9 +62,9 @@ class InvoiceController extends Controller
         ->order($request->order)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
-        $company= CompanySettings::first();
+        $company= CompanySettings::where('organization_id', auth()->user()->organization_id)->first();
 
-        $sales=Invoice::where('cashier_id', $cashier)->search($request->search)
+        $sales=Invoice::where('organization_id', auth()->user()->organization_id)->where('cashier_id', $cashier)->search($request->search)
         // ->filter1($request->get('fromdate'))
         // ->filter2($request->get('todate'))
         ->order($request->order)
@@ -86,8 +86,8 @@ class InvoiceController extends Controller
     }
 
     public function lastInvoice(){
-        $invoice = Invoice::
-        latest()
+        $invoice = Invoice::where('organization_id', auth()->user()->organization_id)
+        ->latest()
         ->first();
         return response()->json(compact('invoice'),200);
     }
@@ -95,7 +95,8 @@ class InvoiceController extends Controller
 
 
     public function show(Invoice $invoice){
-        $invoice = Invoice::where('id', $invoice->id)
+        $invoice = Invoice::where('organization_id', auth()->user()->organization_id)
+        ->where('id', $invoice->id)
         ->with('payments')
         ->with('client')
         ->first();
@@ -156,6 +157,7 @@ class InvoiceController extends Controller
         $invoice->balance = $balance;
         $invoice->payment_type = "MANUAL";
         $invoice->invoice_type = $balance > 0 ? 'Debit' : 'Credit';
+        $invoice->organization_id = auth()->user()->organization_id;
         $save= $invoice->save();
         if($save){
            
@@ -166,6 +168,7 @@ class InvoiceController extends Controller
                 $invoice_item->quantity = $request->quantity[$i];
                 $invoice_item->rate = $request->rate[$i];
                 $invoice_item->amount = $request->amount[$i];
+                $invoice_item->organization_id = auth()->user()->organization_id;
                 $invoice_item->save(); 
                 $items[]=$invoice_item;
             }
@@ -175,11 +178,12 @@ class InvoiceController extends Controller
             $payment->balance = $balance;
             $payment->invoice_id = $invoice->id;
             $payment->client_id = $request->client_id;
+            $payment->organization_id = auth()->user()->organization_id;
             $payment->save();   
             $client= Client::where('id',$request->client_id)->first();
-            $invoice = Invoice::with('client')->with('payments')->where('id', $invoice->id)->first();
+            $invoice = Invoice::where('organization_id', auth()->user()->organization_id)->with('client')->with('payments')->where('id', $invoice->id)->first();
 
-            $clientInvoices = Invoice::where('client_id', $invoice->client_id)
+            $clientInvoices = Invoice::where('organization_id', auth()->user()->organization_id)->where('client_id', $invoice->client_id)
                 ->get();
 
             $total_balance = $clientInvoices->sum('client_balance');

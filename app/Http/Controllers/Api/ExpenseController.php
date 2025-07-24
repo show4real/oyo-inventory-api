@@ -10,15 +10,15 @@ use App\User;
 class ExpenseController extends Controller
 {
     public function index(Request $request){
-        $expenses= CreditorPayment::
-        where('amount_paid','>', 0)
+        $expenses= CreditorPayment::where('organization_id', auth()->user()->organization_id)
+        ->where('amount_paid','>', 0)
         ->start($request->fromdate)
         ->end($request->todate)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
-        $sum_expenses=CreditorPayment::
-        where('amount_paid','>', 0)
+        $sum_expenses=CreditorPayment::where('organization_id', auth()->user()->organization_id)
+        ->where('amount_paid','>', 0)
         ->start($request->fromdate)
         ->end($request->todate)
         ->latest()->get();
@@ -35,6 +35,7 @@ class ExpenseController extends Controller
         $payment= new CreditorPayment();
         $payment->amount_paid= $request->amount_paid;
         $payment->branch_id = $user->branch_id;
+        $payment->organization_id = $user->organization_id;
         $payment->created_by = $user->id;
         $payment->updated_by = $user->id;
         $payment->amount= $request->amount_paid;

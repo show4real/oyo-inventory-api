@@ -20,12 +20,13 @@ class Stock extends Model
         "status",
         "in_stock",
         'product_image',
-        'unit_selling_price'
+        'unit_selling_price',
+        'barcode'
     ];
 
     
     protected $hidden = ['product','branch'];
-    protected $fillable = ['stock_quantity','purchase_order_id','branch_id','product_id','supplier_id','quantity_sold',];
+    protected $fillable = ['stock_quantity','purchase_order_id','branch_id','product_id','supplier_id','quantity_sold','organization_id'];
 
     public function order(){
         return $this->belongsTo('App\PurchaseOrder', 'purchase_order_id');
@@ -43,6 +44,16 @@ class Stock extends Model
 
         if($purchase_order){
             return $purchase_order->unit_selling_price;
+        }
+
+    }
+
+    public function getBarcodeAttribute()
+    {
+        $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
+
+        if($purchase_order){
+            return $purchase_order->barcode;
         }
 
     }

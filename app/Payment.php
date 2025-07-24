@@ -18,7 +18,8 @@ class Payment extends Model
         'amount_paid',
         'amount',
         'balance',
-        'client_id'
+        'client_id',
+        'organization_id'
     ];
 
     public function getInvoiceNumAttribute()

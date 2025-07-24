@@ -11,8 +11,8 @@ use App\Branch;
 class UserController extends Controller
 {
     public function index(Request $request){
-        $users = User::where('organization_id', 1)->search($request->search)->latest()->paginate(10);
-        $branches=Branch::select('id','name')->get();
+        $users = User::where('organization_id', auth()->user()->organization_id)->search($request->search)->latest()->paginate(10);
+        $branches=Branch::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
         return response()->json(compact('users','branches'));
     }
 
@@ -37,7 +37,7 @@ class UserController extends Controller
         $user->status =$request->status;
         $user->firstname = $request->firstname;
         $user->branch_id = $request->branch_id;
-        $user->organization_id = 1;
+        $user->organization_id = auth()->user()->organization_id;
         $user->lastname = $request->lastname;
         $user->address=$request->address;
         $user->phone = $request->phone;
@@ -73,7 +73,7 @@ class UserController extends Controller
         return response()->json(compact('user'));
     }
     public function search(Request $request){
-        $users = User::search($request->search)->get();
+        $users = User::where('organization_id', auth()->user()->organization_id)->search($request->search)->get();
 
         return response()->json(compact('users'));
     }

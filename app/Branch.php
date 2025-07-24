@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Branch extends Model
 {
-    protected $fillable=['name','branch_id'];
+    protected $fillable=['name','branch_id','organization_id'];
     public function scopeSearch($query, $filter)
     {
     	$searchQuery = trim($filter);

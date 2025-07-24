@@ -13,24 +13,24 @@ use App\Payment;
 class ClientController extends Controller
 {
     public function index(Request $request){
-        $clients = Client::
-        search($request->search)
+        $clients = Client::where('organization_id', auth()->user()->organization_id)
+        ->search($request->search)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
         return response()->json(compact('clients'));
     }
 
     public function allClients(Request $request){
-        $clients = Client::
-        search($request->search)
+        $clients = Client::where('organization_id', auth()->user()->organization_id)
+        ->search($request->search)
         ->latest()
         ->get();
         return response()->json(compact('clients'));
     }
 
     public function cashiers(Request $request){
-        $cashiers = User::
-        search($request->search)
+        $cashiers = User::where('organization_id', auth()->user()->organization_id)
+        ->search($request->search)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
         return response()->json(compact('cashiers'));
@@ -49,6 +49,7 @@ class ClientController extends Controller
         $client->email =$request->email;
         $client->phone = $request->phone;
         $client->address = $request->address;
+        $client->organization_id = auth()->user()->organization_id;
         $client->save();
         return response()->json(compact('client'));
     }
@@ -71,7 +72,7 @@ class ClientController extends Controller
         return response()->json(compact('client'));
     }
     public function search(Request $request){
-        $clients = Client::search($request->search)->get();
+        $clients = Client::where('organization_id', auth()->user()->organization_id)->search($request->search)->get();
 
         return response()->json(compact('clients'));
     }
@@ -84,17 +85,19 @@ class ClientController extends Controller
 
     public function clientPayments(Request $request){
 
-        $client_invoices_payments = Invoice::where('client_id', $request->client_id)
+        $client_invoices_payments = Invoice::where('organization_id', auth()->user()->organization_id)
+            ->where('client_id', $request->client_id)
             ->with('payments')
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
 
-        $clientInvoices = Invoice::where('client_id', $request->client_id)
+        $clientInvoices = Invoice::where('organization_id', auth()->user()->organization_id)
+                ->where('client_id', $request->client_id)
                 ->get();
 
-        $invoice = Invoice::where('client_id', $request->client_id)->latest()->first();
+        $invoice = Invoice::where('organization_id', auth()->user()->organization_id)->where('client_id', $request->client_id)->latest()->first();
 
-        $payment = Payment::where('client_id', $request->client_id)->latest()->first();
+        $payment = Payment::where('organization_id', auth()->user()->organization_id)->where('client_id', $request->client_id)->latest()->first();
 
         if($invoice){
              
@@ -106,8 +109,8 @@ class ClientController extends Controller
 
             $last_paid = $payment->amount_paid ?? 0;
 
-            $total_paid = Payment::where('client_id', $request->client_id)->sum('amount_paid');
-            $total_amount = Invoice::where('client_id', $request->client_id)->sum('amount');
+            $total_paid = Payment::where('organization_id', auth()->user()->organization_id)->where('client_id', $request->client_id)->sum('amount_paid');
+            $total_amount = Invoice::where('organization_id', auth()->user()->organization_id)->where('client_id', $request->client_id)->sum('amount');
 
         } else {
 
@@ -120,7 +123,7 @@ class ClientController extends Controller
 
     public function updateClientOnPayment(){
         
-        $payments = Payment::get();
+        $payments = Payment::where('organization_id', auth()->user()->organization_id)->get();
 
 
         foreach ($payments as $payment) {

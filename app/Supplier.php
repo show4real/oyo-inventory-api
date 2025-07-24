@@ -10,7 +10,7 @@ class Supplier extends Model
 {
     use SoftDeletes;
     protected $table="supplier";
-    protected $fillable=['name','supplier_id'];
+    protected $fillable=['name','supplier_id','organization_id'];
     public function scopeSearch($query, $filter)
     {
     	$searchQuery = trim($filter);

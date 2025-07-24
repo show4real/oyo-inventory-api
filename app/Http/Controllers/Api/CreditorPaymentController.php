@@ -10,7 +10,7 @@ use App\User;
 class CreditorPaymentController extends Controller
 {
     public function index(Request $request){
-        $payments= CreditorPayment::latest()
+        $payments= CreditorPayment::where('organization_id', auth()->user()->organization_id)->latest()
         ->start($request->startdate)
         ->end($request->enddate)
         ->paginate($request->rows, ['*'], 'page', $request->page);
@@ -31,6 +31,7 @@ class CreditorPaymentController extends Controller
         $payment->branch_id = $user->branch_id;
         $payment->created_by = $user->id;
         $payment->updated_by = $user->id;
+        $payment->organization_id = $user->organization_id;
         $payment->save();
         
         return response()->json(compact('payment'));

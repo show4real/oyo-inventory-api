@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Category extends Model
 {
-    protected $fillable=['name','slug'];
+    protected $fillable=['name','slug','organization_id'];
     public function scopeSearch($query, $filter)
     {
     	$searchQuery = trim($filter);

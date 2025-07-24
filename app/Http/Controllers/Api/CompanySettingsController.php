@@ -13,9 +13,7 @@ class CompanySettingsController extends Controller
     public function index(Request $request){
         $user = auth()->user();
         
-        $company = $user->organization_id == 1
-        ? CompanySettings::first()
-        : CompanySettings::skip(1)->first();
+        $company = CompanySettings::where('organization_id', auth()->user()->organization_id)->first();
         return response()->json(compact('company'));
 
     }
@@ -25,9 +23,7 @@ class CompanySettingsController extends Controller
     public function save(Request $request){
 
         $user = auth()->user();
-        $company = $user->organization_id == 1
-        ? CompanySettings::first()
-        : CompanySettings::skip(1)->first();
+        $company = CompanySettings::where('organization_id', auth()->user()->organization_id)->first();
 
         $folder = "/logo/";
         $data = $request->data;

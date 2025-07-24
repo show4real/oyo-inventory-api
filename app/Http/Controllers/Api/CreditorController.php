@@ -10,14 +10,16 @@ use App\CreditorPayment;
 class CreditorController extends Controller
 {
     public function index(Request $request){
-    $creditors = Creditor::search($request->search)
+    $creditors = Creditor::where('organization_id', auth()->user()->organization_id)
+    ->search($request->search)
     ->filter1($request->get('fromdate'))
     ->filter2($request->get('todate'))
     ->product($request->product)
     ->latest()
     ->paginate($request->rows, ['*'], 'page', $request->page);
 
-    $creditors_accumulation=Creditor::search($request->search)
+    $creditors_accumulation=Creditor::where('organization_id', auth()->user()->organization_id)
+    ->search($request->search)
     ->filter1($request->get('fromdate'))
     ->filter2($request->get('todate'))
     ->product($request->product)
@@ -36,7 +38,8 @@ class CreditorController extends Controller
     }
 
     public function show($creditor){
-        $creditor = Creditor::where('id', $creditor)
+        $creditor = Creditor::where('organization_id', auth()->user()->organization_id)
+        ->where('id', $creditor)
         ->first();
         $payments= CreditorPayment::where('creditor_id', $creditor->id)->get();
         return response()->json(compact('creditor', 'payments'),200);

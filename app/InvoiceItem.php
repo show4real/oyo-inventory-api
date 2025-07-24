@@ -9,5 +9,5 @@ class InvoiceItem extends Model
 {
     use SoftDeletes;
     protected $table='invoiceitems';
-    protected $fillable=['invoice_id','name','description','quantity','rate','unit','amount'];
+    protected $fillable=['invoice_id','name','description','quantity','rate','unit','amount','organization_id'];
 }

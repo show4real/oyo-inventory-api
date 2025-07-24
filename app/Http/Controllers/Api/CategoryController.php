@@ -12,7 +12,7 @@ use Validator;
 class CategoryController extends Controller
 {
     public function index(Request $request){
-        $categories = Category::withCount('products')
+        $categories = Category::where('organization_id', auth()->user()->organization_id)->withCount('products')
             ->search($request->search)
             ->paginate(20);
         return response()->json(compact('categories'));
@@ -23,23 +23,23 @@ class CategoryController extends Controller
         return response()->json(compact('category'));
     }
 
-    public function save(Request $request){
-       
-        foreach($request->name as $values) {
+    public function save(Request $request)
+    {
+        $categories = [];
 
-            $categories[] = Category::updateOrCreate(
-                ['name' => $values, 
-                'slug' => str_slug($values),
-                ],
+        foreach ($request->name as $value) {
+            $category = new Category();
+            $category->name = $value;
+            $category->slug = str_slug($value);
+            $category->organization_id = auth()->user()->organization_id ?? null; // optional
+            $category->save();
 
-                ['name'=>$values,
-                'slug'=>str_slug($values),
-                ]
-            );
+            $categories[] = $category;
         }
 
         return response()->json(compact('categories'));
     }
+
 
     public function update(Request $request, Category $category){
 

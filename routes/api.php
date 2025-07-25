@@ -75,6 +75,7 @@ function(){
     Route::delete('branches/{branch}', 'Api\BranchController@delete');
 
     Route::post('brands', 'Api\BrandController@index');
+    Route::post('barcodes', 'Api\BrandController@barcodes');
     Route::post('addbrands', 'Api\BrandController@save');
     Route::post('updatebrand/{brand}', 'Api\BrandController@update');
     Route::get('brands/{brand}', 'Api\BrandController@show');

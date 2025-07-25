@@ -34,11 +34,34 @@ class StockController extends Controller
 
     public function stocks(Request $request)
     {
-        $stocks=Stock::where('organization_id', auth()->user()->organization_id)->where('branch_id', $request->branch_id)->search($request->search)
-        ->product($request->order)
-        ->with('order')
-        ->latest()
-        ->paginate($request->rows, ['*'], 'page', $request->page);
+        
+       
+
+        $stocksQuery = Stock::where('organization_id', auth()->user()->organization_id)
+            ->where('branch_id', $request->branch_id)
+            ->search($request->search)
+            ->product($request->order) // assuming this is filtering by product_id
+            ->startdate($request->start_date)
+            ->enddate($request->end_date)
+            ->with('order')
+            ->latest();
+
+        
+
+        $stocks = $stocksQuery->paginate($request->rows, ['*'], 'page', $request->page);
+
+        $stock_quantity = 0;
+        $quantity_sold = 0;
+        $instock = 0;
+
+        if ($request->order) {
+             
+            $stocks_product_details = $stocksQuery->get();
+
+            $stock_quantity = $stocks_product_details->sum('stock_quantity');
+            $quantity_sold = $stocks_product_details->sum('quantity_sold');
+            $instock = $stock_quantity - $quantity_sold;
+        }
         
 
         $branch = Branch::where('organization_id', auth()->user()->organization_id)->where('id',$request->branch_id)->first()->name;
@@ -48,10 +71,10 @@ class StockController extends Controller
         ->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
         
         $products=Product::where('organization_id', auth()->user()->organization_id)
-        ->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
+        ->select('id','name')->paginate(5000, ['*'], 'page', $request->page);
       
        
-        return response()->json(compact('stocks','products','suppliers','branch','product'));
+        return response()->json(compact('stocks','products','suppliers','branch','product','stock_quantity','quantity_sold','instock'));
        
     }
 

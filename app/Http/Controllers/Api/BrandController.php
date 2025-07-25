@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Brand;
 use App\Product;
 use Validator;
+use App\PurchaseOrder;
 
 class BrandController extends Controller
 {
@@ -15,6 +16,13 @@ class BrandController extends Controller
             ->search($request->search)
             ->paginate(10);
         return response()->json(compact('brands'));
+    }
+
+     public function barcodes(Request $request){
+        $barcodes = PurchaseOrder::where('organization_id', auth()->user()->organization_id)
+            ->search($request->search)
+            ->paginate(10);
+        return response()->json(compact('barcodes'));
     }
 
     public function show(Brand $brand){

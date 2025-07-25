@@ -115,13 +115,14 @@ class PurchaseOrderController extends Controller
     
     public function save(Request $request)
     {
+            $product = Product::where('id', $request->product_id)->select('id','supplier_id')->first();
             $purchase_order=$this->purchase_order;
             $purchase_order->product_attributes = $request->product_attributes;
             $purchase_order->product_attributes_keys = $request->product_attributes_keys;
             $purchase_order->product_id = $request->product_id;
             $purchase_order->unit_price = $request->unit_price;
             $purchase_order->barcode =$request->barcode;
-            $purchase_order->supplier_id = $request->supplier;
+            $purchase_order->supplier_id = $request->supplier ?? $product->supplier_id;
             $purchase_order->warehouse_id = $request->warehouse_id;
             $purchase_order->stock_quantity = $request->stock_quantity;
             $purchase_order->tracking_id = "TRK-" . strtoupper(Str::random(5));
@@ -143,6 +144,10 @@ class PurchaseOrderController extends Controller
         $purchase_order->warehouse_id = $request->warehouse_id;
         $purchase_order->stock_quantity = $request->stock_quantity;
         $purchase_order->save();
+
+        $product = Product::where('id', $request->product_id)->first();
+        $product->supplier_id = $request->supplier;
+        $product->save();
         return response()->json(compact('purchase_order'));
     }
 
@@ -152,15 +157,7 @@ class PurchaseOrderController extends Controller
        
         $purchase_order = $this->purchase_order->findOrFail($id);
         
-        if($request->received_at == ''){
-            $purchase_order->rejected_at = now();
-            $purchase_order->confirmed_at = null;
-            $purchase_order->received_at = null;
-            $purchase_order->quantity_returned = 0;
-            $purchase_order->quantity_moved=0;
-            $purchase_order->organization_id = auth()->user()->organization_id;
-            $purchase_order->save();
-        }else{
+        
             $purchase_order->received_at = Carbon::parse($request->received_at);
             $purchase_order->rejected_at = null;
             $purchase_order->unit_selling_price = str_replace(',', '', $request->selling_price);
@@ -201,7 +198,7 @@ class PurchaseOrderController extends Controller
                     ->update(['unit_selling_price' => $purchase_order->unit_selling_price]);
 
             }
-        }
+        
         return response()->json(compact('purchase_order'));
     }
 

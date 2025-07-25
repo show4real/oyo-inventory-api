@@ -222,21 +222,113 @@ class PosController extends Controller
         return response()->json(compact('products'));
     }
 
-    public function getPosSales(Request $request)
+   public function getPosSales(Request $request) 
+    {
+        $users = User::where('organization_id', auth()->user()->organization_id)
+            ->select('id', 'firstname', 'lastname')
+            ->get();
+        
+        $pos_sales = $this->pos
+            ->where('organization_id', auth()->user()->organization_id)
+            ->search($request->search)
+            ->order($request->order)
+            ->employee($request->user)
+            ->product($request->product)
+            ->startdate($request->fromdate)
+            ->enddate($request->todate)
+            ->with('stock')
+            ->with('order')
+            ->latest()
+            ->paginate($request->rows, ['*'], 'page', $request->page);
+        
+        $sales = $this->pos
+            ->where('organization_id', auth()->user()->organization_id)
+            ->search($request->search)
+            ->order($request->order)
+            ->employee($request->user)
+            ->product($request->product)
+            ->startdate($request->fromdate)
+            ->enddate($request->todate)
+            ->get();
+        
+        $total_sales = 0;
+        $total_sold = 0;
+        $total_instock = 0;
+        $total = 0;
+        
+        foreach($sales as $sale) {
+            $result = $sale['selling_price'] * $sale['qty_sold'];
+            $total_sales += $result;
+            $total_sold += $sale['qty_sold'];
+        }
+        
+        // Calculate totals when product is specified
+        if ($request->product) {
+            // Get stock information for the specific product
+            $stock_query = $this->pos
+                ->where('organization_id', auth()->user()->organization_id)
+                ->product($request->product);
+            
+            // Apply date filters if specified
+            if ($request->fromdate) {
+                $stock_query->startdate($request->fromdate);
+            }
+            if ($request->todate) {
+                $stock_query->enddate($request->todate);
+            }
+            
+            $stock_data = $stock_query->with('stock')->get();
+            
+            // Calculate total instock from related stock records
+            foreach($stock_data as $item) {
+                if ($item->stock) {
+                    $total_instock += $item->stock->stock_quantity ?? 0;
+                }
+            }
+            
+            // Calculate combined total (instock + sold)
+            $total = $total_instock + $total_sold;
+        }
+        
+        return response()->json(compact(
+            'pos_sales', 
+            'users', 
+            'total_sales', 
+            'total', 
+            'total_sold', 
+            'total_instock'
+        ));
+    }
+
+    public function getPosTransactions(Request $request)
     {
         
         $users= User::where('organization_id', auth()->user()->organization_id)->select('id','firstname','lastname')->get();
-        $pos_sales=$this->pos
+        $latestIds = $this->pos
         ->where('organization_id', auth()->user()->organization_id)
         ->search($request->search)
-        ->order($request->order)
         ->employee($request->user)
         ->product($request->product)
         ->startdate($request->fromdate)
         ->enddate($request->todate)
-        ->with('stock')->with('order')
-        ->latest()
-        ->paginate($request->rows, ['*'], 'page', $request->page);
+        ->selectRaw('MAX(id) as max_id')
+        ->groupBy('transaction_id')
+        ->pluck('max_id');
+
+        // Then get the actual records with those IDs
+        $pos_sales = $this->pos
+            ->where('organization_id', auth()->user()->organization_id)
+            ->whereIn('id', $latestIds)
+            ->search($request->search)
+            ->order($request->order)
+            ->employee($request->user)
+            ->product($request->product)
+            ->startdate($request->fromdate)
+            ->enddate($request->todate)
+            ->with('stock')
+            ->with('order')
+            ->latest()
+            ->paginate($request->rows, ['*'], 'page', $request->page);
         
         $sales=$this->pos
         ->where('organization_id', auth()->user()->organization_id)
@@ -253,11 +345,9 @@ class PosController extends Controller
              $total_sales+=$result;
         }
 
-     
 
+        
 
-       
-   
       
         return response()->json(compact('pos_sales','users','total_sales'));
     }
@@ -290,7 +380,17 @@ class PosController extends Controller
         ->where('transaction_id', $request->transaction_id)
         ->with('stock')->with('order')->get();
         $invoice = Invoice::where('transaction_id', $request->transaction_id)->first();
-        return response()->json(compact('transaction_detail','invoice'));
+
+        $clientInvoices = Invoice::where('client_id', $invoice->client_id)
+                ->get();
+
+        $total_balance = $clientInvoices->sum('client_balance');
+
+        $balance = $invoice->amount - $invoice->amount_paid;
+
+        $prev_balance = $total_balance - $balance;
+
+        return response()->json(compact('transaction_detail','invoice','total_balance','balance','prev_balance'));
     }
 
     public function getTransactionDetails2(Request $request){

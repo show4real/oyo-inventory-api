@@ -153,6 +153,8 @@ function(){
     
     Route::post('pos/products', 'Api\PosController@products');
     Route::post('pos_sales', 'Api\PosController@getPosSales');
+    Route::post('pos_transactions', 'Api\PosController@getPosTransactions');
+
     Route::post('transaction_details', 'Api\PosController@getTransactionDetails');
 
     Route::post('purchase_order', 'Api\PurchaseOrderController@save');

@@ -31,7 +31,7 @@ class PaymentController extends Controller
         $payment->balance = $new_balance;
         $payment->invoice_id = $request->invoice_id;
         $payment->client_id = $invoice->client_id;
-        $payment->organization_id = auth()->user()->organization_id
+        $payment->organization_id = auth()->user()->organization_id;
         $payment->save();
 
 

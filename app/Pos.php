@@ -102,13 +102,10 @@ class Pos extends Model
 
     public function getProductNameAttribute()
     {
-        $product_id = PurchaseOrder::where('tracking_id', $this->purchase_order_id)->first();
-        if($product_id){
-            $product= Product::where('id',$product_id->product_id)->first();
+         $product= Product::where('id',$this->product_id)->first();
             if($product){
                 return $product->name;
             }
-        }
     }
 
     public function getBalanceAttribute(){
@@ -140,14 +137,10 @@ class Pos extends Model
 
     public function getSupplierNameAttribute(){
       
-        $supplier= PurchaseOrder::where('id', $this->purchase_order_id)->first();
-        if($supplier){
-            $name= Supplier::where('id', $supplier->id)->first();
-            if($name){
-                return $name->name;
+        $supplier= Supplier::where('id', $this->supplier_id)->first();
+            if($supplier){
+                return $supplier->name;
             }
-           
-        }
     }
 
     public function scopeProduct($query, $filter)

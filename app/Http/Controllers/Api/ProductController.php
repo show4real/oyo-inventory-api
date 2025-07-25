@@ -49,9 +49,11 @@ class ProductController extends Controller
 
     public function save(Request $request)
     {
+
+        $supplier = Supplier::where('organization_id', auth()->user()->organization_id)->first();
     
         $product=$this->product;
-        // $product->brand_id = $request->brand_id;
+        $product->supplier_id = $supplier->id;
         $product->deleted =0;
         $product->category_id = $request->category_id;
         $product->status =$request->status;
@@ -70,8 +72,10 @@ class ProductController extends Controller
             'name' => 'unique:products'
         ]);
 
+        $supplier = Supplier::where('organization_id', auth()->user()->organization_id)->first();
+
         $product = $this->product->findOrFail($id);
-        // $product->brand_id = $request->brand_id;
+        $product->supplier_id = $supplier->id;
         $product->category_id = $request->category_id;
         $product->name = $request->name;
         $product->description = $request->description;

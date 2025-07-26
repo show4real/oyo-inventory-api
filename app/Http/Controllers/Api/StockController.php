@@ -222,7 +222,7 @@ class StockController extends Controller
         }
         
         
-        return response()->json(compact('stock_serial_ids'));
+        return response()->json(compact('stock'));
     }
 
     public function serials(Request $request){

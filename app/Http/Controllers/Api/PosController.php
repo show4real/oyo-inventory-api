@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use App\CompanySettings;
 use App\Invoice;
 use App\Payment;
+use DB;
 
 class PosController extends Controller
 {
@@ -304,16 +305,16 @@ class PosController extends Controller
     {
         
         $users= User::where('organization_id', auth()->user()->organization_id)->select('id','firstname','lastname')->get();
-        $latestIds = $this->pos
-        ->where('organization_id', auth()->user()->organization_id)
-        ->search($request->search)
-        ->employee($request->user)
-        ->product($request->product)
-        ->startdate($request->fromdate)
-        ->enddate($request->todate)
-        ->selectRaw('MAX(id) as max_id')
-        ->groupBy('transaction_id')
-        ->pluck('max_id');
+         $latestIds = DB::table(DB::raw('(
+            SELECT MAX(id) as max_id 
+            FROM pos 
+            WHERE organization_id = ?
+            GROUP BY transaction_id
+        ) as subquery'))
+            ->setBindings([auth()->user()->organization_id])
+            ->pluck('max_id');
+
+   
 
         // Then get the actual records with those IDs
         $pos_sales = $this->pos

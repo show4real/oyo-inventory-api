@@ -69,6 +69,7 @@ function(){
     Route::delete('categories/{category}', 'Api\CategoryController@delete');
 
     Route::post('branches', 'Api\BranchController@index');
+     Route::post('allbranches', 'Api\BranchController@allbranches');
     Route::post('addbranches', 'Api\BranchController@save');
     Route::post('updatebranch/{branch}', 'Api\BranchController@update');
     Route::get('branches/{branch}', 'Api\BranchController@show');
@@ -112,6 +113,8 @@ function(){
     Route::post('purchase_orders', 'Api\PurchaseOrderController@purchaseOrders');
     
     Route::post('stocks', 'Api\StockController@stocks');
+    Route::post('create/stocks', 'Api\NewStockController@save');
+    Route::post('delete/stock/{user}', 'Api\NewStockController@delete');
 
     Route::post('branch_stocks', 'Api\StockController@branchStocks');
     Route::post('stocks2', 'Api\StockController@stocks2');

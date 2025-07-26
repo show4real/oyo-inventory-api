@@ -14,7 +14,21 @@ class PurchaseOrder extends Model
     protected $table = "purchase_order";
     protected $appends = ["product_name", "product_description", "supplier_name", "profit", "new_stock_qty", "branch_name", "status", "in_stock", 'product_image','fixed_price'];
     protected $hidden = ["product"];
-    protected $fillable = ['quantity_sold','unit_selling_price','organization_id'];
+    protected $fillable = [
+        'product_id',
+        'unit_price',
+        'unit_selling_price',
+        'barcode',
+        'supplier_id',
+        'stock_quantity',
+        'quantity_moved',
+        'tracking_id',
+        'organization_id',
+        'received_at',
+        'confirmed_at',
+        'quantity_sold',
+    ];
+
     protected $dates = [ 'created_at' ];
     protected $casts = [
         'stock_qty' => 'integer',

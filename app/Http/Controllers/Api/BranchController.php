@@ -19,6 +19,11 @@ class BranchController extends Controller
         return response()->json(compact('branches'));
     }
 
+    public function allbranches(Request $request){
+        $branches = Branch::where('organization_id', auth()->user()->organization_id)->select('id','name')->get();
+        return response()->json(compact('branches'));
+    }
+
     public function show(Branch $branch){
         $branch = Branch::where('id', $branch->id)->first();
         return response()->json(compact('branch'));

@@ -26,7 +26,16 @@ class Stock extends Model
 
     
     protected $hidden = ['product','branch'];
-    protected $fillable = ['stock_quantity','purchase_order_id','branch_id','product_id','supplier_id','quantity_sold','organization_id'];
+   
+    protected $fillable = [
+    'purchase_order_id',
+    'branch_id',
+    'stock_quantity',
+    'product_id',
+    'supplier_id',
+    'organization_id',
+    'quantity_sold'
+    ];
 
     public function order(){
         return $this->belongsTo('App\PurchaseOrder', 'purchase_order_id');

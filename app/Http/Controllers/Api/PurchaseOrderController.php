@@ -117,13 +117,10 @@ class PurchaseOrderController extends Controller
     {
             $product = Product::where('id', $request->product_id)->select('id','supplier_id')->first();
             $purchase_order=$this->purchase_order;
-            $purchase_order->product_attributes = $request->product_attributes;
-            $purchase_order->product_attributes_keys = $request->product_attributes_keys;
             $purchase_order->product_id = $request->product_id;
             $purchase_order->unit_price = $request->unit_price;
             $purchase_order->barcode =$request->barcode;
             $purchase_order->supplier_id = $request->supplier ?? $product->supplier_id;
-            $purchase_order->warehouse_id = $request->warehouse_id;
             $purchase_order->stock_quantity = $request->stock_quantity;
             $purchase_order->tracking_id = "TRK-" . strtoupper(Str::random(5));
             $purchase_order->organization_id = auth()->user()->organization_id;
@@ -166,12 +163,6 @@ class PurchaseOrderController extends Controller
             $save = $purchase_order->save();
             if($save){
             
-                for($v=1; $v<= $purchase_order->stock_quantity; $v++){
-                    $purchase_order_serial= new PurchaseOrderSerial();
-                    $purchase_order_serial->purchase_order_id = $purchase_order->id;
-                    $purchase_order_serial->save();
-                }
-                
               
                 $amount =  $purchase_order->unit_price*$purchase_order->stock_quantity;
                 $creditor= new Creditor();
@@ -191,7 +182,6 @@ class PurchaseOrderController extends Controller
                 $payment->organization_id = auth()->user()->organization_id;
                 $payment->save();
 
-                // update previous stock product price with the current price
 
                 PurchaseOrder::where('organization_id', auth()->user()->organization_id)
                     ->where('product_id', $purchase_order->product_id)
@@ -291,33 +281,13 @@ class PurchaseOrderController extends Controller
         $prev_quantity= $stock !== null ? $stock->stock_quantity : 0;
 
         $quantity_moved = $request->quantity_moved+$prev_quantity;
-        $new_stock = Stock::where('organization_id', auth()->user()->organization_id)->updateOrCreate(
+        $new_stock = Stock::updateOrCreate(
 
             ['purchase_order_id' => $id,'branch_id' => request('branch_id')],
             ['stock_quantity' => $quantity_moved, 'product_id' =>$purchase_order->product_id, 
             'supplier_id' => $purchase_order->supplier_id,'organization_id' => auth()->user()->organization_id]
         
         );
-
-        if($request->values){
-            
-            $v=$request->values;
-            foreach($v as $index=>$values) {
-
-                PurchaseOrderSerial::updateOrCreate(
-
-                    ['purchase_order_id' => request('id'),'serial_no' =>  $v[$index]['serial_no']],
-                    ['moved_at' => now(), 'branch_moved_to' => request('branch_id')]
-                
-                );
-
-                $stock_serial = new StockSerialNo();
-                $stock_serial->serial_no =  $v[$index]['serial_no'];
-                $stock_serial->stock_id = $new_stock->id;
-                $stock_serial->save();
-                
-            }
-        }
            
         
         return response()->json(compact('purchase_order'));

@@ -82,12 +82,14 @@ class StockController extends Controller
     {
         $user= auth()->user();
         if($user->admin === 1){
-            $stocks=Stock::where('organization_id', auth()->user()->organization_id)
+           $stocks = Stock::where('organization_id', auth()->user()->organization_id)
+            ->whereHas('branch', function ($query) {
+                $query->where('sell', 1);
+            })
             ->search($request->search)
             ->availableStock()
             ->product($request->order)
-            ->with('order')
-            ->with('serials')
+            ->with(['order', 'serials']) // eager load relationships
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
         } else {

@@ -8,6 +8,11 @@ use Str;
 use App\PurchaseOrder;
 use App\Product;
 use App\Stock;
+use App\StockMovement;
+use App\Branch;
+use DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class NewStockController extends Controller
 {
@@ -69,5 +74,112 @@ class NewStockController extends Controller
 
         return response()->json(true);
     }
+
+    public function moveStock(Request $request)
+    {
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'stock_id' => 'required|exists:stocks,id',
+            'from_branch_id' => 'required|exists:branches,id',
+            'to_branch_id' => 'required|exists:branches,id|different:from_branch_id',
+            'quantity' => 'required|integer|min:1',
+            'product_id' => 'required|exists:products,id',
+            'order_id' => 'required|exists:purchase_order,id', // or whatever your orders table is called
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Start database transaction
+        DB::beginTransaction();
+
+        try {
+            $stockId = $request->stock_id;
+            $fromBranchId = $request->from_branch_id;
+            $toBranchId = $request->to_branch_id;
+            $quantity = $request->quantity;
+            $productId = $request->product_id;
+            $orderId = $request->order_id;
+
+            // 1. Get the original stock record with relationships
+            $originalStock = Stock::where('id', $stockId)
+                ->where('branch_id', $fromBranchId)
+                ->first();
+
+            if (!$originalStock) {
+                throw new \Exception('Stock not found or does not belong to the specified branch');
+            }
+
+            // 2. Calculate available stock (stock_quantity - quantity_sold)
+            $availableStock = $originalStock->stock_quantity - $originalStock->quantity_sold;
+
+
+            // 4. Check if stock already exists for the same product/order in destination branch
+            $existingDestinationStock = Stock::where('branch_id', $toBranchId)
+                ->where('product_id', $productId)
+                ->where('purchase_order_id', $orderId)
+                ->first();
+
+            if ($existingDestinationStock) {
+                // If stock exists, add to existing stock
+                $existingDestinationStock->update([
+                    'stock_quantity' => $existingDestinationStock->stock_quantity + $quantity
+                ]);
+                $newStock = $existingDestinationStock;
+            } else {
+                // 5. Create new stock entry for destination branch
+                $newStock = Stock::create([
+                    'branch_id' => $toBranchId,
+                    'product_id' => $productId,
+                    'purchase_order_id' => $orderId,
+                    'stock_quantity' => $quantity,
+                    'quantity_sold' => 0,
+                    'organization_id' => auth()->user()->organization_id
+                ]);
+            }
+
+        
+            $originalStock->update([
+                'stock_quantity' => $originalStock->stock_quantity - $quantity
+            ]);
+
+
+            StockMovement::create([
+                'from_stock_id' => $stockId,
+                'to_stock_id' => $newStock->id,
+                'from_branch_id' => $fromBranchId,
+                'to_branch_id' => $toBranchId,
+                'product_id' => $productId,
+                'quantity' => $quantity,
+                'moved_by' => Auth::id(),
+                'reason' => 'Branch Transfer',
+                'organization_id' => auth()->user()->organization_id
+            ]);
+
+            DB::commit();
+
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock moved successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            // Rollback transaction on error
+            DB::rollback();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to move stock',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 }

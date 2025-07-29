@@ -125,6 +125,7 @@ function(){
     Route::post('serials', 'Api\StockController@serials');
 
     Route::post('returnstock', 'Api\StockController@returnStock');
+     Route::post('movestock', 'Api\NewStockController@moveStock');
 
 
 

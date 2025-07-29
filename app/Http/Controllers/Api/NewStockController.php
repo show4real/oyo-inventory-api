@@ -55,25 +55,29 @@ class NewStockController extends Controller
 
     public function delete($id, Request $request)
     {
-        
         $stock = Stock::where('id', $id)
             ->where(function ($query) {
                 $query->whereNull('quantity_sold')->orWhere('quantity_sold', 0);
             })
             ->firstOrFail();
 
-        
         $purchaseOrder = PurchaseOrder::find($stock->purchase_order_id);
 
-        
+        // Delete the stock
         $stock->delete();
-        
+
+        // Check if other stocks still reference this purchase order
         if ($purchaseOrder) {
-            $purchaseOrder->delete();
+            $otherStocksCount = Stock::where('purchase_order_id', $purchaseOrder->id)->count();
+
+            if ($otherStocksCount === 0) {
+                $purchaseOrder->delete();
+            }
         }
 
         return response()->json(true);
     }
+
 
     public function moveStock(Request $request)
     {

@@ -32,7 +32,8 @@ class Invoice extends Model
         'balance',
         'payment_mode',
         'edited_by',
-        'organization_id'
+        'organization_id',
+        'delivery_fee'
     ];
     public function getClientNameAttribute()
     {

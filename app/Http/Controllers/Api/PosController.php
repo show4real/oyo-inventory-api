@@ -27,110 +27,134 @@ class PosController extends Controller
         $this->pos = $pos;
     }
 
-    public function multPosOrder(Request $request){
-        $currency = CompanySettings::where('organization_id', auth()->user()->organization_id)->first()->currency;
-        $sale_orders=[];
-        $pos_order=[];
+    public function multPosOrder(Request $request)
+    {
+        $organization_id = auth()->user()->organization_id;
+        $user_id = auth()->user()->id;
+
+        $companySettings = CompanySettings::where('organization_id', $organization_id)->first();
+        $currency = $companySettings->currency;
+        $sell_by_serial_no = $companySettings->sell_by_serial_no;
+
         $payment_mode = $request->payment_mode;
-        
-        $transact_id="TRANSAC-".strtoupper(Str::random(15));
-        $sell_by_serial_no= CompanySettings::where('organization_id', auth()->user()->organization_id)->first()->sell_by_serial_no;
-        if($request->cart_items){
-            $v=$request->cart_items;
-            $total_purchase = 0;
-            foreach($v as $index=>$cart_items) {
+        $transact_id = "TRANSAC-" . strtoupper(Str::random(15));
 
-                
-                $sale_orders =Stock::firstOrNew(['id' => $v[$index]['id']]);
-                $sale_orders->quantity_sold = ($sale_orders->quantity_sold + $v[$index]['quantity']);
+        $sale_orders = [];
+        $pos_order = [];
+        $total_purchase = 0;
+        $sold_at = now();
+
+        if ($request->cart_items) {
+            $v = $request->cart_items;
+
+            foreach ($v as $index => $cart_items) {
+                $sale_orders = Stock::firstOrNew(['id' => $v[$index]['id']]);
+                $sale_orders->quantity_sold += $v[$index]['quantity'];
                 $sale_orders->save();
-                $sold_at=now();
-                if($sell_by_serial_no == 1){
-                    $serials = StockSerialNo::whereIn('id', $v[$index]['new_serials'])->update(['sold_at' => $sold_at]);
-                }
-                $total_purchase +=  $v[$index]['quantity'] *  $v[$index]['order']['unit_selling_price'];
-               
 
-                // save for pos record
-                $pos_order =Pos::create(['purchase_order_id' => $v[$index]['purchase_order_id']]);
-                $pos_order->transaction_id = $transact_id;
-                $client_id = $request->client_id;
-                $pos_order->qty_sold =$v[$index]['quantity'];
-                $pos_order->unit_selling_price = $v[$index]['order']['unit_selling_price'];
-                $pos_order->supplier_id =$v[$index]['supplier_id'];
-                if($sell_by_serial_no == 1){
-                    $pos_order->serials =$v[$index]['new_serials'];
-                }
-                $pos_order->stock_id =$v[$index]['id'];
-                $pos_order->product_id =$v[$index]['product_id'];
-                $pos_order->cashier_id = auth()->user()->id;
+                $total_purchase += $v[$index]['quantity'] * $v[$index]['order']['unit_selling_price'];
 
-                $pos_order->payment_mode=$payment_mode;
-                $pos_order->channel='pos_order';
-                $pos_order->organization_id = auth()->user()->organization_id;
-                $pos_order->save();
-                $sold_at=now();
+                $pos_order = Pos::create([
+                    'purchase_order_id' => $v[$index]['purchase_order_id'],
+                    'transaction_id' => $transact_id,
+                    'qty_sold' => $v[$index]['quantity'],
+                    'unit_selling_price' => $v[$index]['order']['unit_selling_price'],
+                    'supplier_id' => $v[$index]['supplier_id'],
+                    'serials' => $sell_by_serial_no == 1 ? $v[$index]['new_serials'] : null,
+                    'stock_id' => $v[$index]['id'],
+                    'product_id' => $v[$index]['product_id'],
+                    'cashier_id' => $user_id,
+                    'payment_mode' => $payment_mode,
+                    'channel' => 'pos_order',
+                    'organization_id' => $organization_id,
+                ]);
             }
+
+            // Add delivery fee if provided
+            $delivery_fee = $request->delivery_fee ?? 0;
+            $total_with_delivery = $total_purchase + $delivery_fee;
+
             // Save Invoice
             $now = Carbon::now();
-            $invoice= new Invoice();
-            $invoice->invoice_no=$request->invoice_no;
+            $invoice = new Invoice();
+            $invoice->invoice_no = $request->invoice_no;
             $invoice->transaction_id = $transact_id;
-            $invoice->cashier_id=auth()->user()->id;
-            $invoice->organization_id = auth()->user()->organization_id;
+            $invoice->cashier_id = $user_id;
+            $invoice->organization_id = $organization_id;
             $invoice->description = "Sales from POS Menu";
             $invoice->payment_type = "POS";
             $invoice->client_id = $request->client_id;
             $invoice->currency = $currency;
             $invoice->issued_date = $now;
             $invoice->due_date = $request->due_date;
-            $invoice->amount = $total_purchase;
+            $invoice->amount = $total_with_delivery;
             $invoice->amount_paid = $request->amount_paid;
-            $invoice->balance = $total_purchase - $request->amount_paid;
+            $invoice->balance = $total_with_delivery - $request->amount_paid;
             $invoice->payment_mode = $payment_mode;
+            $invoice->delivery_fee = $delivery_fee; // Make sure this column exists in DB
             $invoice->save();
-            
-            $payment= new Payment();
-            $payment->amount_paid= $request->amount_paid;
-            $payment->amount=$total_purchase;
-            $payment->balance = $total_purchase - $request->amount_paid;
+
+            $payment = new Payment();
+            $payment->amount_paid = $request->amount_paid;
+            $payment->amount = $total_with_delivery;
+            $payment->balance = $total_with_delivery - $request->amount_paid;
             $payment->invoice_id = $invoice->id;
             $payment->client_id = $request->client_id;
-            $payment->organization_id = auth()->user()->organization_id;
-            $payment->save(); 
-            $update_pos =Pos::where('organization_id', auth()->user()->organization_id)->where('transaction_id',$transact_id)->update(['invoice_id' => $invoice->id]);
+            $payment->organization_id = $organization_id;
+            $payment->save();
 
-            //$pos_sales=Pos::where('transaction_id',$transact_id)->with('stock')->with('order')->get();
-            $invoice = Invoice::where('organization_id', auth()->user()->organization_id)->where('id', $invoice->id)
-            ->with('payments')
-            ->with('client')
-            ->first();
-            $pos_items = Pos::where('organization_id', auth()->user()->organization_id)->where('invoice_id', $invoice->id)->with('stock')->with('order')->get();
+            $update_pos = Pos::where('organization_id', $organization_id)
+                ->where('transaction_id', $transact_id)
+                ->update(['invoice_id' => $invoice->id]);
 
-            $invoices = Invoice::where('organization_id', auth()->user()->organization_id)->where('client_id', $invoice->client_id)->get();
+            $invoice = Invoice::where('organization_id', $organization_id)
+                ->where('id', $invoice->id)
+                ->with('payments')
+                ->with('client')
+                ->first();
 
-            
-            $balance = $total_purchase - $request->amount_paid;
+            $pos_items = Pos::where('organization_id', $organization_id)
+                ->where('invoice_id', $invoice->id)
+                ->with('stock')
+                ->with('order')
+                ->get();
 
+            $invoices = Invoice::where('organization_id', $organization_id)
+                ->where('client_id', $invoice->client_id)
+                ->get();
+
+            $balance = $total_with_delivery - $request->amount_paid;
             $total_balance = $invoices->sum('client_balance');
-
             $prev_balance = $total_balance - $balance;
-            
 
-            return response()->json(compact('pos_order','sold_at','payment_mode','invoice','pos_items','total_balance','balance','prev_balance'));
+            return response()->json(compact(
+                'pos_order',
+                'sold_at',
+                'payment_mode',
+                'invoice',
+                'pos_items',
+                'total_balance',
+                'balance',
+                'prev_balance'
+            ));
         }
-       
     }
+
+
 
 
 
 
     public function editMultPosOrder(Request $request)
     {
-        
-        $invoice = Invoice::where('organization_id', auth()->user()->organization_id)->with(['payments', 'client'])->findOrFail($request->invoice_id);
+        $organization_id = auth()->user()->organization_id;
+        $user_id = auth()->user()->id;
 
-        
+        $invoice = Invoice::where('organization_id', $organization_id)
+            ->with(['payments', 'client'])
+            ->findOrFail($request->invoice_id);
+
+        // Delete existing POS records and revert stock
         $posRecords = Pos::where('invoice_id', $invoice->id)->get();
         if ($posRecords->isNotEmpty()) {
             foreach ($posRecords as $pos) {
@@ -140,7 +164,7 @@ class PosController extends Controller
         }
 
         $sale_orders = [];
-        $pos_order=[];
+        $pos_order = [];
         $payment_mode = $request->payment_mode;
         $transact_id = "TRANSAC-" . strtoupper(Str::random(15));
         $total_purchase = 0;
@@ -153,7 +177,6 @@ class PosController extends Controller
 
                 $total_purchase += $cart_item['quantity'] * $cart_item['order']['unit_selling_price'];
 
-                // Create POS record for each item
                 $pos_order = Pos::create([
                     'purchase_order_id' => $cart_item['purchase_order_id'],
                     'transaction_id' => $transact_id,
@@ -162,60 +185,79 @@ class PosController extends Controller
                     'supplier_id' => $cart_item['supplier_id'],
                     'stock_id' => $cart_item['id'],
                     'product_id' => $cart_item['product_id'],
-                    'edited_by' => auth()->user()->id,
-                    'cashier_id' => auth()->user()->id,
+                    'edited_by' => $user_id,
+                    'cashier_id' => $user_id,
                     'payment_mode' => $payment_mode,
                     'channel' => 'pos_order',
-                    'organization_id' => auth()->user()->organization_id
+                    'organization_id' => $organization_id,
                 ]);
             }
 
-    
+            // Add delivery fee if provided
+            $delivery_fee = $request->delivery_fee ?? 0;
+            $total_with_delivery = $total_purchase + $delivery_fee;
+
+            // Update invoice
             $invoice->update([
                 'transaction_id' => $transact_id,
-                'edited_by' => auth()->user()->id,
+                'edited_by' => $user_id,
                 'description' => "Sales from POS Menu",
                 'payment_type' => "POS",
                 'client_id' => $request->client_id,
                 'issued_date' => now(),
-                'amount' => $total_purchase,
+                'amount' => $total_with_delivery,
                 'amount_paid' => $request->amount_paid,
-                'balance' => $total_purchase - $request->amount_paid,
+                'balance' => $total_with_delivery - $request->amount_paid,
                 'payment_mode' => $payment_mode,
-                'organization_id' => auth()->user()->organization_id
+                'delivery_fee' => $delivery_fee, // Make sure this column exists
+                'organization_id' => $organization_id,
             ]);
 
-            
-            $payment = Payment::where('organization_id', auth()->user()->organization_id)->where('invoice_id', $request->invoice_id)->first();
+            // Update payment
+            $payment = Payment::where('organization_id', $organization_id)
+                ->where('invoice_id', $request->invoice_id)
+                ->first();
+
             $payment->update([
                 'amount_paid' => $request->amount_paid,
-                'amount' => $total_purchase,
-                'balance' => $total_purchase - $request->amount_paid,
+                'amount' => $total_with_delivery,
+                'balance' => $total_with_delivery - $request->amount_paid,
                 'client_id' => $request->client_id,
-                'organization_id' => auth()->user()->organization_id
+                'organization_id' => $organization_id,
             ]);
 
-            
-            Pos::where('transaction_id', $transact_id)->update(['invoice_id' => $invoice->id]);
+            // Update POS records with invoice ID
+            Pos::where('transaction_id', $transact_id)
+                ->update(['invoice_id' => $invoice->id]);
 
-            
-            $pos_items = Pos::where('organization_id', auth()->user()->organization_id)->where('invoice_id', $invoice->id)->with(['stock', 'order'])->get();
+            // Load updated POS items
+            $pos_items = Pos::where('organization_id', $organization_id)
+                ->where('invoice_id', $invoice->id)
+                ->with(['stock', 'order'])
+                ->get();
 
-           
-            $invoices = Invoice::where('organization_id', auth()->user()->organization_id)->where('client_id', $invoice->client_id)->get();
+            $invoices = Invoice::where('organization_id', $organization_id)
+                ->where('client_id', $invoice->client_id)
+                ->get();
 
             $total_balance = $invoices->sum('client_balance');
-
-            $balance = $total_purchase - $request->amount_paid;
-
+            $balance = $total_with_delivery - $request->amount_paid;
             $prev_balance = $total_balance - $balance;
-
             $sold_at = now();
 
-            
-            return response()->json(compact('pos_order','sold_at', 'payment_mode', 'invoice', 'pos_items', 'total_balance','prev_balance','balance'));
+            return response()->json(compact(
+                'pos_order',
+                'sold_at',
+                'payment_mode',
+                'invoice',
+                'pos_items',
+                'total_balance',
+                'prev_balance',
+                'balance'
+            ));
         }
     }
+
 
 
     public function products(Request $request){

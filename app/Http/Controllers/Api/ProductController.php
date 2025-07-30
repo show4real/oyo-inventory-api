@@ -25,6 +25,7 @@ class ProductController extends Controller
         ->sort($request->sort)
         ->search($request->search)
         ->category($request->category)
+        ->withCount('stocks')
         ->paginate($request->rows, ['*'], 'page', $request->page);
       
         return response()->json(compact('products'));

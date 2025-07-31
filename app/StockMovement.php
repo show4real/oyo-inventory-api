@@ -27,6 +27,7 @@ class StockMovement extends Model
     ];
 
     // Relationships
+    
     public function fromStock()
     {
         return $this->belongsTo(Stock::class, 'from_stock_id');
@@ -56,4 +57,6 @@ class StockMovement extends Model
     {
         return $this->belongsTo(User::class, 'moved_by');
     }
+
+    
 }

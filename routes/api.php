@@ -115,6 +115,7 @@ function(){
     Route::post('stocks', 'Api\StockController@stocks');
     Route::post('create/stocks', 'Api\NewStockController@save');
     Route::post('delete/stock/{user}', 'Api\NewStockController@delete');
+    Route::post('edit/stock/{stockId}', 'Api\NewStockController@update');
 
     Route::post('branch_stocks', 'Api\StockController@branchStocks');
     Route::post('stocks2', 'Api\StockController@stocks2');

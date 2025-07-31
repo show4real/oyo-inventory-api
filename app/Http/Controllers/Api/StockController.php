@@ -48,7 +48,10 @@ class StockController extends Controller
 
         
 
-        $stocks = $stocksQuery->paginate($request->rows, ['*'], 'page', $request->page);
+        $stocks = $stocksQuery->with([
+        'movementsFrom.toBranch', 
+        'movementsTo.fromBranch'
+    ])->paginate($request->rows, ['*'], 'page', $request->page);
 
         $stock_quantity = 0;
         $quantity_sold = 0;

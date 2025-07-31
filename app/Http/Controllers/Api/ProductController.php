@@ -58,13 +58,14 @@ class ProductController extends Controller
         $product->deleted =0;
         $product->category_id = $request->category_id;
         $product->status =$request->status;
-        $product->name = $request->product_name;
+        $product->name = $request->product_name ?? $request->name;
         $product->description = $request->description;
         $product->slug = str_slug($request->product_name, "-");
         $product->organization_id = auth()->user()->organization_id;
         $product->save();
         return response()->json(compact('product'));
     }
+    
 
     
     public function update($id, Request $request)

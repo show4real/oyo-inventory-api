@@ -21,6 +21,7 @@ class Stock extends Model
         "in_stock",
         'product_image',
         'unit_selling_price',
+        'unit_price',
         'barcode'
     ];
 
@@ -53,6 +54,16 @@ class Stock extends Model
 
         if($purchase_order){
             return $purchase_order->unit_selling_price;
+        }
+
+    }
+
+    public function getUnitPriceAttribute()
+    {
+        $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
+
+        if($purchase_order){
+            return $purchase_order->unit_price;
         }
 
     }
@@ -254,6 +265,19 @@ class Stock extends Model
            return  $query->whereDate('created_at', '<', $filter);
         }
     }
+
+    // Movements where this stock is the source
+    public function movementsFrom()
+    {
+        return $this->hasMany(StockMovement::class, 'from_stock_id');
+    }
+
+    // Movements where this stock is the destination
+    public function movementsTo()
+    {
+        return $this->hasMany(StockMovement::class, 'to_stock_id');
+    }
+
 
 
 }

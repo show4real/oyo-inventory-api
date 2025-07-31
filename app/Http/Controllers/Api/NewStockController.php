@@ -53,6 +53,50 @@ class NewStockController extends Controller
         return response()->json(['purchase_order' => $purchaseOrder], 200);
     }
 
+    public function update(Request $request, $stockId)
+    {
+        
+        $stock = Stock::where('id', $stockId)
+            ->where('organization_id', auth()->user()->organization_id)
+            ->firstOrFail();
+
+        
+        $purchaseOrder = PurchaseOrder::where('id', $stock->purchase_order_id)
+            ->where('organization_id', auth()->user()->organization_id)
+            ->firstOrFail();
+
+
+        $product = Product::select('id', 'supplier_id')->findOrFail($request->product_id);
+
+    
+        $purchaseOrder->update([
+            'product_id'         => $product->id,
+            'unit_price'         => $request->unit_price,
+            'unit_selling_price' => $request->unit_selling_price,
+            'barcode'            => $request->barcode,
+            'supplier_id'        => $request->supplier ?? $product->supplier_id,
+            'stock_quantity'     => $request->stock_quantity,
+            'quantity_moved'     => $request->stock_quantity,
+            'received_at'        => now(),
+            'confirmed_at'       => now(),
+        ]);
+
+        // Update stock
+        $stock->update([
+            'stock_quantity'   => $purchaseOrder->quantity_moved,
+            'product_id'       => $purchaseOrder->product_id,
+            'supplier_id'      => $purchaseOrder->supplier_id,
+            'branch_id'        => $request->branch_id,
+        ]);
+
+        return response()->json([
+            'message'         => 'Stock and Purchase Order updated successfully.',
+            'purchase_order'  => $purchaseOrder,
+            'stock'           => $stock,
+        ], 200);
+    }
+
+
     public function delete($id, Request $request)
     {
         $stock = Stock::where('id', $id)

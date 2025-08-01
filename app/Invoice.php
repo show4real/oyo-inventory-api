@@ -33,7 +33,9 @@ class Invoice extends Model
         'payment_mode',
         'edited_by',
         'organization_id',
-        'delivery_fee'
+        'delivery_fee',
+        'discount',
+        'discount_percent'
     ];
     public function getClientNameAttribute()
     {

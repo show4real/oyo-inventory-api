@@ -229,5 +229,37 @@ class NewStockController extends Controller
         }
     }
 
+    public function editPriceAddMoreQty(Request $request)
+    {
+    
+        $request->validate([
+            'id' => 'required|integer|exists:stocks,id',
+            'unit_selling_price' => 'required|numeric|min:0',
+        ]);
+
+        
+        $stock = Stock::findOrFail($request->id);
+    
+        $purchase_order = PurchaseOrder::findOrFail($stock->purchase_order_id);
+
+        $quantity = $request->stock_quantity;
+
+        
+        $purchase_order->unit_selling_price = $request->unit_selling_price;
+        $purchase_order->stock_quantity += $quantity;
+
+        $stock->stock_quantity += $quantity;
+
+        $purchase_order->save();
+        $stock->save();
+
+        
+        return response()->json([
+            'purchase_order' => $purchase_order,
+            'stock' => $stock
+        ], 200);
+    }
+
+
 
 }

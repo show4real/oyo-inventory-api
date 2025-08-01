@@ -72,7 +72,9 @@ class PosController extends Controller
 
             // Add delivery fee if provided
             $delivery_fee = $request->delivery_fee ?? 0;
-            $total_with_delivery = $total_purchase + $delivery_fee;
+            $discount_percent = $request->discount_percent ?? 0;
+            $discount = $request->discount ?? 0;
+            $total_with_delivery = ($total_purchase - $discount) + $delivery_fee;
 
             // Save Invoice
             $now = Carbon::now();
@@ -91,7 +93,9 @@ class PosController extends Controller
             $invoice->amount_paid = $request->amount_paid;
             $invoice->balance = $total_with_delivery - $request->amount_paid;
             $invoice->payment_mode = $payment_mode;
-            $invoice->delivery_fee = $delivery_fee; // Make sure this column exists in DB
+            $invoice->delivery_fee = $delivery_fee;
+            $invoice->discount_percent = $discount_percent;
+            $invoice->discount = $discount;
             $invoice->save();
 
             $payment = new Payment();
@@ -195,7 +199,7 @@ class PosController extends Controller
 
             // Add delivery fee if provided
             $delivery_fee = $request->delivery_fee ?? 0;
-            $total_with_delivery = $total_purchase + $delivery_fee;
+            $total_with_delivery = ($total_purchase - $request->discount) + $delivery_fee;
 
             // Update invoice
             $invoice->update([
@@ -210,6 +214,8 @@ class PosController extends Controller
                 'balance' => $total_with_delivery - $request->amount_paid,
                 'payment_mode' => $payment_mode,
                 'delivery_fee' => $delivery_fee, // Make sure this column exists
+                'discount' => $request->discount ?? 0,
+                'discount_percent' => $request->discount_percent ?? 0,
                 'organization_id' => $organization_id,
             ]);
 

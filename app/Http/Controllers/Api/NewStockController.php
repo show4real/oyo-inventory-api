@@ -235,6 +235,7 @@ class NewStockController extends Controller
         $request->validate([
             'id' => 'required|integer|exists:stocks,id',
             'unit_selling_price' => 'required|numeric|min:0',
+            'quantity_operation' => 'required'
         ]);
 
         
@@ -243,12 +244,19 @@ class NewStockController extends Controller
         $purchase_order = PurchaseOrder::findOrFail($stock->purchase_order_id);
 
         $quantity = $request->stock_quantity;
+        $quantity_operation = $request->quantity_operation;
 
         
         $purchase_order->unit_selling_price = $request->unit_selling_price;
-        $purchase_order->stock_quantity += $quantity;
+        if($quantity_operation == "add"){
+            $purchase_order->stock_quantity += $quantity;
+            $stock->stock_quantity += $quantity;
+        } else {
+            $purchase_order->stock_quantity -= $quantity;
+            $stock->stock_quantity -= $quantity;
+        }
 
-        $stock->stock_quantity += $quantity;
+        
 
         $purchase_order->save();
         $stock->save();

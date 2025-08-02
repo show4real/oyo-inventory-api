@@ -55,21 +55,24 @@ class InvoiceController extends Controller
         $cashier=auth()->user()->id;
         $invoices = Invoice::where('organization_id', auth()->user()->organization_id)
         ->where('cashier_id', $cashier)
+        ->whereDate('created_at', today()) // Filter for current day
         ->search($request->search)
         ->currency($request->currency)
-        // ->filter1($request->get('fromdate'))
-        // ->filter2($request->get('todate'))
         ->order($request->order)
         ->latest()
         ->paginate($request->rows, ['*'], 'page', $request->page);
-        $company= CompanySettings::where('organization_id', auth()->user()->organization_id)->first();
 
-        $sales=Invoice::where('organization_id', auth()->user()->organization_id)->where('cashier_id', $cashier)->search($request->search)
-        // ->filter1($request->get('fromdate'))
-        // ->filter2($request->get('todate'))
+        $company = CompanySettings::where('organization_id', auth()->user()->organization_id)->first();
+
+        // Get all sales for the current day (without pagination)
+        $sales = Invoice::where('organization_id', auth()->user()->organization_id)
+        ->where('cashier_id', $cashier)
+        ->whereDate('created_at', today()) // Filter for current day
+        ->search($request->search)
         ->order($request->order)
         ->currency($request->currency)
-        ->cashier($request->cashier_id)->get();
+        ->cashier($request->cashier_id)
+        ->get();
         $total_sales=0;
         $total_balance=0;
         $total_discount=0;

@@ -381,8 +381,8 @@ class PosController extends Controller
         
         $sales=$this->pos
         ->where('organization_id', auth()->user()->organization_id)
-        ->search($request->search)
-        ->order($request->order)
+        // ->search($request->search)
+        // ->order($request->order)
         ->employee($request->user)
         ->product($request->product)
         ->startdate($request->fromdate)
@@ -395,8 +395,8 @@ class PosController extends Controller
         }
 
         $invoice=Invoice::where('organization_id', auth()->user()->organization_id)
-        ->search($request->search)
-        ->order($request->order)
+        // ->search($request->search)
+        // ->order($request->order)
         ->cashier($request->user)
         ->filter1($request->fromdate)
         ->filter2($request->todate)

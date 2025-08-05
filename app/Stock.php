@@ -278,6 +278,12 @@ class Stock extends Model
         return $this->hasMany(StockMovement::class, 'to_stock_id');
     }
 
+    public function barcodeItem()
+    {
+        return $this->belongsTo(Barcode::class, 'barcode', 'name');
+    }
+
+
 
 
 }

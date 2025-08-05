@@ -390,15 +390,34 @@ class PosController extends Controller
         $total_sales=0;
         foreach($sales as $sale){
             
-            $result=$sale['selling_price'] * $sale['qty_sold'];
+            $result=($sale['selling_price'] * $sale['qty_sold']);
              $total_sales+=$result;
         }
+
+        $invoice=Invoice::where('organization_id', auth()->user()->organization_id)
+        ->search($request->search)
+        ->order($request->order)
+        ->cashier($request->user)
+        ->filter1($request->fromdate)
+        ->filter2($request->todate)
+        ->get();
+
+        $total_delivery_fee = $invoice->sum('delivery_fee');
+        $total_discount = $invoice->sum('discount');
+
+        $total_amount = ($total_delivery_fee + $total_sales) - $total_discount;
+
+        $total_amount_paid = $invoice->sum('amount_paid');
+        
+        
 
 
         
 
+        
+
       
-        return response()->json(compact('pos_sales','users','total_sales'));
+        return response()->json(compact('pos_sales','users','total_sales','total_amount','total_discount','total_amount_paid','total_delivery_fee'));
     }
 
     public function getPosSales2(Request $request)

@@ -240,4 +240,9 @@ class PurchaseOrder extends Model
         return $total_purchase;
     }
 
+    public function stock()
+    {
+        return $this->hasMany(Stock::class);
+    }
+
 }

@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\RegisterController;
+use App\Http\Controllers\Api\BarcodeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,12 +76,18 @@ function(){
     Route::get('branches/{branch}', 'Api\BranchController@show');
     Route::delete('branches/{branch}', 'Api\BranchController@delete');
 
-    Route::post('brands', 'Api\BrandController@index');
-    Route::post('barcodes', 'Api\BrandController@barcodes');
+  
     Route::post('addbrands', 'Api\BrandController@save');
     Route::post('updatebrand/{brand}', 'Api\BrandController@update');
     Route::get('brands/{brand}', 'Api\BrandController@show');
     Route::delete('brands/{brand}', 'Api\BrandController@delete');
+
+    Route::prefix('barcodes')->group(function () {
+
+        Route::post('/store', [BarcodeController::class, 'storeBarcodesFromPurchaseOrders']);
+        Route::post('/generate', [BarcodeController::class, 'generateBarcodes']);
+        Route::post('/xxx', [BarcodeController::class, 'getBarcodesWithUsage']);
+    });
     
     Route::post('suppliers', 'Api\SupplierController@index');
     Route::post('addsuppliers', 'Api\SupplierController@save');

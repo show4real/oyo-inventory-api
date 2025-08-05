@@ -71,16 +71,36 @@ class BarcodeController extends Controller
 
     
     public function getBarcodesWithUsage(Request $request)
-    {
-        $organization_id = auth()->user()->organization_id;
-        $perPage = $request->input('rows', 10);
+{
+    $organization_id = auth()->user()->organization_id;
 
-        // Get paginated barcodes
-        $barcodes = Barcode::where('organization_id', $organization_id)
-            ->withCount('orderItems')
-            ->paginate($request->rows, ['*'], 'page', $request->page);
+    $query = Barcode::where('organization_id', $organization_id)
+        ->withCount('orderItems');
 
-            return response()->json(compact('barcodes'));
+    // Search functionality
+    if ($request->has('search') && !empty($request->search)) {
+        $searchTerm = $request->search;
+        $query->where(function ($q) use ($searchTerm) {
+            $q->where('name', 'LIKE', "%{$searchTerm}%");
+        });
     }
+
+    // Filter by count - Use whereHas/whereDoesntHave instead of having
+    if ($request->has('filter_count')) {
+        $filterValue = $request->filter_count;
+        
+        if ($filterValue === 'greater_than_zero') {
+            $query->whereHas('orderItems');
+        } elseif ($filterValue === 'equals_zero') {
+            $query->whereDoesntHave('orderItems');
+        } elseif ($filterValue === 'all') {
+            // No additional filter needed - shows all records
+        }
+    }
+
+    $barcodes = $query->paginate($request->rows, ['*'], 'page', $request->page);
+
+    return response()->json(compact('barcodes'));
+}
 
 }

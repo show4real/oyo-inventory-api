@@ -21,7 +21,8 @@ class Pos extends Model
         "cost",
         "selling_price",
         "product_name",
-        "sold_serials"
+        "sold_serials",
+        "amount"
     ];
 
     protected $hidden = ["product"];
@@ -196,6 +197,12 @@ class Pos extends Model
             }
             
         }
+    }
+
+    public function getAmountAttribute(){
+         $invoice= Invoice::where('id', $this->invoice_id)->first();
+
+         return $invoice->amount ?? 'N/A';
     }
 
 }

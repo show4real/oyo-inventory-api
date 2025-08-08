@@ -84,28 +84,19 @@ class StockController extends Controller
     public function branchStocks(Request $request)
     {
         $user= auth()->user();
-        if($user->admin === 1){
-           $stocks = Stock::where('organization_id', auth()->user()->organization_id)
+
+        $stocks = Stock::where('organization_id', auth()->user()->organization_id)
             ->whereHas('branch', function ($query) {
                 $query->where('sell', 1);
             })
             ->search($request->search)
             ->availableStock()
             ->product($request->order)
-            ->with(['order', 'serials']) // eager load relationships
-            ->latest()
-            ->paginate($request->rows, ['*'], 'page', $request->page);
-        } else {
-            $stocks=Stock::where('organization_id', auth()->user()->organization_id)
+            ->with(['order', 'serials'])
             ->where('branch_id', $user->branch_id)
-            ->search($request->search)
-            ->availableStock()
-            ->product($request->order)
-            ->with('order')
-            ->with('serials')
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
-        }
+       
       
         $suppliers=Supplier::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
         $products=Product::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);

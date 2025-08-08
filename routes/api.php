@@ -127,7 +127,7 @@ function(){
 
     
 
-    Route::post('branch_stocks', 'Api\StockController@branchStocks');
+    //Route::post('branch_stocks', 'Api\StockController@branchStocks');
     Route::post('stocks2', 'Api\StockController@stocks2');
 
     Route::post('stock/{stock}', 'Api\StockController@show');
@@ -234,7 +234,7 @@ function(){
 
     Route::post('cashiers', 'Api\ClientController@cashiers');
 
-    Route::post('branch_stocks', 'Api\StockController@branchStocks');
+    //Route::post('branch_stocks', 'Api\StockController@branchStocks');
     Route::post('pos_order', 'Api\PosController@multPosOrder');
     Route::post('pos_sales2', 'Api\PosController@getPosSales2');
     Route::post('transaction_details2', 'Api\PosController@getTransactionDetails2');

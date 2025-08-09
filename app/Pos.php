@@ -57,27 +57,30 @@ class Pos extends Model
             $searchQuery = trim($filter);
             $requestData = ['cashier_id', 'transaction_id'];
             $userData = ['firstname'];
+            $clientData = ['name', 'lastname', 'email', 'phone'];
         
-            return $query->where(function ($q) use ($requestData, $searchQuery, $userData) {
+            return $query->where(function ($q) use ($requestData, $searchQuery, $userData, $clientData) {
                 $q->where(function ($qq) use ($requestData, $searchQuery) {
                     foreach ($requestData as $field) {
                         $qq->orWhere($field, 'like', "%{$searchQuery}%");
                     }
-
                 })
-                    ->orWhere(function ($qq) use ($userData, $searchQuery) {
-                        foreach ($userData as $field) {
-                            $qq->orWhereHas('user', function ($qqq) use ($userData, $searchQuery, $field) {
-                                $qqq->where($field, 'like', "%{$searchQuery}%");
-                            });
-                        }
-
-                    
-
+                ->orWhere(function ($qq) use ($userData, $searchQuery) {
+                    foreach ($userData as $field) {
+                        $qq->orWhereHas('user', function ($qqq) use ($searchQuery, $field) {
+                            $qqq->where($field, 'like', "%{$searchQuery}%");
+                        });
+                    }
+                })
+                ->orWhere(function ($qq) use ($clientData, $searchQuery) {
+                    foreach ($clientData as $field) {
+                        $qq->orWhereHas('invoice.client', function ($qqq) use ($searchQuery, $field) {
+                            $qqq->where($field, 'like', "%{$searchQuery}%");
+                        });
+                    }
                 });
             });
         });
-
     }
 
     public function getCashierNameAttribute()

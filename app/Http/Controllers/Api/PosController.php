@@ -387,7 +387,7 @@ class PosController extends Controller
             ->startdate($request->fromdate)
             ->enddate($request->todate)
             ->with('stock')
-            ->with('order')
+            ->with('invoice')
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
         

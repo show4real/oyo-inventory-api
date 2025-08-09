@@ -178,6 +178,10 @@ class Pos extends Model
         return $this->belongsTo('App\PurchaseOrder', 'purchase_order_id');
     }
 
+    public function invoice(){
+        return $this->belongsTo('App\Invoice', 'invoice_id');
+    }
+
     public function scopeStartdate($query, $filter){
         if($filter != null){
            return  $query->whereDate('created_at', '>', $filter);

@@ -42,7 +42,8 @@ class Pos extends Model
         'payment_mode',
         'channel',
         'edited_by',
-        'organization_id'
+        'organization_id',
+        'created_at'
     ];
     protected $casts = [
         'qty_sold'=>'integer',

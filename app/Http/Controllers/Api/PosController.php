@@ -202,6 +202,7 @@ class PosController extends Controller
                         'payment_mode' => $payment_mode,
                         'channel' => 'pos_order',
                         'organization_id' => $organization_id,
+                        'created_at' => $invoice->created_at
                     ]);
                 }
 

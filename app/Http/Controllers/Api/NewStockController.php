@@ -47,6 +47,7 @@ class NewStockController extends Controller
                 'product_id'       => $purchaseOrder->product_id,
                 'supplier_id'      => $purchaseOrder->supplier_id,
                 'organization_id'  => auth()->user()->organization_id,
+                'expiry_date' => $request->expiry_date
             ]
         );
 
@@ -87,6 +88,7 @@ class NewStockController extends Controller
             'product_id'       => $purchaseOrder->product_id,
             'supplier_id'      => $purchaseOrder->supplier_id,
             'branch_id'        => $request->branch_id,
+            'expiry_date'      => $request->expiry_date
         ]);
 
         return response()->json([
@@ -235,7 +237,8 @@ class NewStockController extends Controller
         $request->validate([
             'id' => 'required|integer|exists:stocks,id',
             'unit_selling_price' => 'required|numeric|min:0',
-            'quantity_operation' => 'required'
+            'quantity_operation' => 'required',
+            'expiry_date' => 'string'
         ]);
 
         
@@ -248,6 +251,8 @@ class NewStockController extends Controller
 
         
         $purchase_order->unit_selling_price = $request->unit_selling_price;
+        $stock->expiry_date = $request->expiry_date;
+        
         if($quantity_operation == "add"){
             $purchase_order->stock_quantity += $quantity;
             $stock->stock_quantity += $quantity;
@@ -255,6 +260,8 @@ class NewStockController extends Controller
             $purchase_order->stock_quantity -= $quantity;
             $stock->stock_quantity -= $quantity;
         }
+
+
 
         
 

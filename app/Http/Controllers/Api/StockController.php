@@ -43,15 +43,14 @@ class StockController extends Controller
             ->product($request->order) // assuming this is filtering by product_id
             ->startdate($request->start_date)
             ->enddate($request->end_date)
+            ->expiryDate($request->expiry_date)
             ->with('order')
             ->latest();
 
-        
-
         $stocks = $stocksQuery->with([
-        'movementsFrom.toBranch', 
-        'movementsTo.fromBranch'
-    ])->paginate($request->rows, ['*'], 'page', $request->page);
+            'movementsFrom.toBranch', 
+            'movementsTo.fromBranch'
+        ])->paginate($request->rows, ['*'], 'page', $request->page);
 
         $stock_quantity = 0;
         $quantity_sold = 0;
@@ -70,14 +69,9 @@ class StockController extends Controller
         $branch = Branch::where('organization_id', auth()->user()->organization_id)->where('id',$request->branch_id)->first()->name;
         $product = $request->order !== null ? Product::where('id', $request->order)->first()->name : '';
 
-        $suppliers=Supplier::where('organization_id', auth()->user()->organization_id)
-        ->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
-        
-        $products=Product::where('organization_id', auth()->user()->organization_id)
-        ->select('id','name')->paginate(5000, ['*'], 'page', $request->page);
       
        
-        return response()->json(compact('stocks','products','suppliers','branch','product','stock_quantity','quantity_sold','instock'));
+        return response()->json(compact('stocks','branch','product','stock_quantity','quantity_sold','instock'));
        
     }
 
@@ -97,15 +91,8 @@ class StockController extends Controller
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
        
-      
-        $suppliers=Supplier::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
-        $products=Product::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
-        $branches=Branch::where('organization_id', auth()->user()->organization_id)->select('id','name')->paginate($request->rows, ['*'], 'page', $request->page);
-
-        
        
-       
-        return response()->json(compact('stocks','products','suppliers','branches'));
+        return response()->json(compact('stocks'));
        
     }
 

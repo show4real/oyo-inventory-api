@@ -35,7 +35,8 @@ class Stock extends Model
     'product_id',
     'supplier_id',
     'organization_id',
-    'quantity_sold'
+    'quantity_sold',
+    'expiry_date'
     ];
 
     public function order(){
@@ -260,6 +261,14 @@ class Stock extends Model
         }
     }
 
+    public function scopeExpiryDate($query, $filter)
+    {
+        if ($filter != null) {
+            return $query->whereDate('expiry_date', '>', $filter);
+        }
+        return $query;
+    }
+
     public function scopeEnddate($query, $filter){
         if($filter != null){
            return  $query->whereDate('created_at', '<', $filter);
@@ -277,12 +286,7 @@ class Stock extends Model
     {
         return $this->hasMany(StockMovement::class, 'to_stock_id');
     }
-
-    public function barcodeItem()
-    {
-        return $this->belongsTo(Barcode::class, 'barcode', 'name');
-    }
-
+    
 
 
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 use App\PurchaseOrder;
 use App\Pos;
 use App\Product;
+use App\Branch;
 use Valiadtor;
 use Str;
 use App\Stock;
@@ -383,7 +384,7 @@ class PosController extends Controller
             ->search($request->search)
             ->order($request->order)
             ->employee($request->user)
-            ->product($request->product)
+            ->branch($request->branch)
             ->startdate($request->fromdate)
             ->enddate($request->todate)
             ->with('stock')
@@ -393,10 +394,10 @@ class PosController extends Controller
         
         $sales=$this->pos
         ->where('organization_id', auth()->user()->organization_id)
-        // ->search($request->search)
+        ->search($request->search)
         // ->order($request->order)
         ->employee($request->user)
-        ->product($request->product)
+        ->branch($request->branch)
         ->startdate($request->fromdate)
         ->enddate($request->todate)->get();
         $total_sales=0;
@@ -407,7 +408,7 @@ class PosController extends Controller
         }
 
         $invoice=Invoice::where('organization_id', auth()->user()->organization_id)
-        // ->search($request->search)
+        ->search($request->search)
         // ->order($request->order)
         ->cashier($request->user)
         ->filter1($request->fromdate)
@@ -420,16 +421,14 @@ class PosController extends Controller
         $total_amount = ($total_delivery_fee + $total_sales) - $total_discount;
 
         $total_amount_paid = $invoice->sum('amount_paid');
+
+        $branches = Branch::where('organization_id', auth()->user()->organization_id)
+        ->where('sell', 1)
+        ->select('id','name')->get();
         
         
-
-
-        
-
-        
-
-      
-        return response()->json(compact('pos_sales','users','total_sales','total_amount','total_discount','total_amount_paid','total_delivery_fee'));
+        return response()->json(compact('pos_sales',
+        'users','total_sales','total_amount','total_discount','total_amount_paid','total_delivery_fee','branches'));
     }
 
     public function getPosSales2(Request $request)

@@ -137,6 +137,16 @@ class Pos extends Model
         }
     }
 
+    public function scopeBranch($query, $filter)
+    {
+        if ($filter != null) {
+            return $query->whereHas('stock', function ($q) use ($filter) {
+                $q->where('branch_id', $filter);
+            })->latest();
+        }
+        return $query;
+    }
+
    
 
 

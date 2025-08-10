@@ -29,23 +29,24 @@ class BranchController extends Controller
         return response()->json(compact('branch'));
     }
 
-    public function save(Request $request){
-       
-        foreach($request->name as $values) {
+    public function save(Request $request)
+    {
+        // Simple validation - just unique name
+        $request->validate([
+            'name' => 'required|unique:branches,name,NULL,id,organization_id,' . auth()->user()->organization_id,
+        ], [
+            'name.required' => 'Branch name is required',
+            'name.unique' => 'A branch with this name already exists'
+        ]);
 
-            $branches[] = Branch::updateOrCreate(
-                ['name' => $values,
-                  'organization_id' => auth()->user()->organization_id
-                ],
+        $branch = new Branch();
+        $branch->organization_id = auth()->user()->organization_id;
+        $branch->name = $request->name;
+        $branch->sell = $request->sell;
+        $branch->branch_id = "BRCH-TRK-" . strtoupper(Str::random(10));
+        $branch->save();
 
-                ['name'=>$values,
-                'branch_id'=>"BRCH-TRK-" . strtoupper(Str::random(10)),
-                'organization_id' => auth()->user()->organization_id
-                ]
-            );
-        }
-
-        return response()->json(compact('branches'));
+        return response()->json(compact('branch'));
     }
 
     public function update(Request $request, Branch $branch){
@@ -58,6 +59,7 @@ class BranchController extends Controller
           return response()->json($validator->messages(), 422);
         }
         $branch->name = $request->name;
+        $branch->sell = $request->sell;
         $branch->save();
         return response()->json(compact('branch'));
     }

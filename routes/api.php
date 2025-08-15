@@ -31,7 +31,7 @@ Route::post('/sendrecovery', 'Api\ForgotPasswordController@sendrecovery');
  Route::post('all-products', 'Api\ProductController@getAllProducts');
 
 
-Route::group(['middleware'=>['jwt.auth','CheckAdmin']],
+Route::group(['middleware'=>['jwt.auth','CheckAdmin','CheckSubscription']],
 function(){
 
     Route::post('/games', 'Bookings\GameController@store');
@@ -212,9 +212,9 @@ function(){
   );
 
 
-  Route::group(['middleware'=>['jwt.auth']],
+  Route::group(['middleware'=>['jwt.auth','CheckSubscription']],
   function(){
-    Route::post('dashboards', 'Api\DashboardController@index');
+   
     Route::post('invoices2', 'Api\InvoiceController@index2');
     Route::get('invoice2/{invoice}', 'Api\InvoiceController@show2');
     Route::get('last_invoice', 'Api\InvoiceController@lastInvoice');
@@ -225,6 +225,7 @@ function(){
     Route::post('updatepayment', 'Api\PaymentController@update');
 
     Route::post('branch_stocks', 'Api\StockController@branchStocks');
+    
 
     Route::post('clients', 'Api\ClientController@index');
     Route::get('client/{client}', 'Api\ClientController@show');
@@ -241,7 +242,14 @@ function(){
     Route::get('company', 'Api\CompanySettingsController@index');
 
 
+    
+  });
 
+  Route::group(['middleware'=>['jwt.auth']],
+  function(){
+
+    Route::post('subscription', 'Api\SubscriptionController@index');
+    Route::post('dashboards', 'Api\DashboardController@index');
     Route::post('allgames', 'Bookings\GameController@index');
     Route::post('bookings', 'Bookings\BookingController@store');
     Route::post('all-bookings', 'Bookings\BookingController@index');

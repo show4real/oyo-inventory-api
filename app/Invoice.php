@@ -14,7 +14,7 @@ class Invoice extends Model
     use SoftDeletes;
 
     protected $appends = [
-        'client_name', 'cashier_name','total_payment','total_balance','client_balance'
+        'client_name', 'cashier_name','total_payment','total_balance','client_balance','client_phone','client_address'
     ];
 
     protected $fillable = [
@@ -42,6 +42,22 @@ class Invoice extends Model
        if($this->client_id){
             $client= Client::where('id',$this->client_id)->first();
             return $client->name;
+       }
+    }
+
+    public function getClientPhoneAttribute()
+    {
+       if($this->client_id){
+            $client= Client::where('id',$this->client_id)->first();
+            return $client->phone;
+       }
+    }
+
+    public function getClientAddressAttribute()
+    {
+       if($this->client_id){
+            $client= Client::where('id',$this->client_id)->first();
+            return $client->address;
        }
     }
 

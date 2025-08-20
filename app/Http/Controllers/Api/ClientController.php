@@ -56,13 +56,13 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client){
 
-        $validator = Validator::make($request->all(), [
-            'email' => 'unique:clients,email,'. $client->id
-        ]);
+        // $validator = Validator::make($request->all(), [
+        //     'email' => 'unique:clients,email,'. $client->id
+        // ]);
 
-        if($validator->fails()){
-          return response()->json($validator->messages(), 422);
-        }
+        // if($validator->fails()){
+        //   return response()->json($validator->messages(), 422);
+        // }
        
         $client->name=$request->name;
         $client->email =$request->email;

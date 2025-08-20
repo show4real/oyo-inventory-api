@@ -45,6 +45,8 @@ class Invoice extends Model
        }
     }
 
+    
+
     public function getClientPhoneAttribute()
     {
        if($this->client_id){

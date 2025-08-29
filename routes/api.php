@@ -69,8 +69,6 @@ function(){
     Route::get('categories/{category}', 'Api\CategoryController@show');
     Route::delete('categories/{category}', 'Api\CategoryController@delete');
 
-    Route::post('branches', 'Api\BranchController@index');
-     Route::post('allbranches', 'Api\BranchController@allbranches');
     Route::post('addbranches', 'Api\BranchController@save');
     Route::post('updatebranch/{branch}', 'Api\BranchController@update');
     Route::get('branches/{branch}', 'Api\BranchController@show');
@@ -95,17 +93,6 @@ function(){
     Route::get('supplier/{supplier}', 'Api\SupplierController@show');
     Route::post('deletesupplier/{supplier}', 'Api\SupplierController@delete');
 
-    Route::post('attributes', 'Api\AttributeController@index');
-    Route::post('addattributes', 'Api\AttributeController@save');
-    Route::put('attributes/{attribute}', 'Api\AttributeController@update');
-    Route::get('attributes/{attribute}', 'Api\AttributeController@show');
-    Route::delete('attributes/{attribute}', 'Api\AttributeController@delete');
-
-    Route::post('productattributes', 'Api\ProductAttributeController@index');
-    Route::post('addproductattributes', 'Api\ProductAttributeController@save');
-    Route::get('productattributes/{attribute}', 'Api\ProductAttributeController@show');
-    Route::delete('productattributes/{attribute}', 'Api\ProductAttributeController@delete');
-
     Route::post('products', 'Api\ProductController@index');
     Route::post('product', 'Api\ProductController@save');
     Route::put('product/{product}', 'Api\ProductController@update');
@@ -115,43 +102,24 @@ function(){
     Route::post('product/image/{image}', 'Api\ProductImageController@store');
 
 
-
     Route::post('product/{product_id}/purchase_orders', 'Api\PurchaseOrderController@index');
     Route::post('purchase_orders', 'Api\PurchaseOrderController@purchaseOrders');
     
-    Route::post('stocks', 'Api\StockController@stocks');
-    Route::post('create/stocks', 'Api\NewStockController@save');
-    Route::post('delete/stock/{user}', 'Api\NewStockController@delete');
+   
     Route::post('edit/stock/{stockId}', 'Api\NewStockController@update');
-    Route::post('stock/editprice', 'Api\NewStockController@editPriceAddMoreQty');
+    Route::post('delete/stock/{user}', 'Api\NewStockController@delete');
 
+  
     
 
-    //Route::post('branch_stocks', 'Api\StockController@branchStocks');
-    Route::post('stocks2', 'Api\StockController@stocks2');
-
-    Route::post('stock/{stock}', 'Api\StockController@show');
-    Route::post('saveserial', 'Api\StockController@saveSerial');
-    Route::post('editserial/{id}', 'Api\StockController@editSerial');
-    Route::post('serials', 'Api\StockController@serials');
-
-    Route::post('returnstock', 'Api\StockController@returnStock');
-     Route::post('movestock', 'Api\NewStockController@moveStock');
-
-
-
-    Route::post('purchase_order', 'Api\PurchaseOrderController@stocks');
+   
     Route::post('sales', 'Api\PurchaseOrderController@getSalesOrder');
     
-    Route::post('confirm_order/{order}', 'Api\PurchaseOrderController@confirmOrder');
-    Route::post('return_order/{order}', 'Api\PurchaseOrderController@returnOrder');
-    Route::post('move_order/{order}', 'Api\PurchaseOrderController@moveOrder');
-    Route::post('purchase_order/editserial/{id}', 'Api\PurchaseOrderController@editSerial');
-    Route::post('purchase_order/serials', 'Api\PurchaseOrderSerialController@getSerials');
+
+    Route::post('purchase_order', 'Api\PurchaseOrderController@stocks');
     Route::post('purchase_order/editprice', 'Api\PurchaseOrderController@editPrice');
     Route::post('purchase_order/add-more', 'Api\PurchaseOrderController@addMoreOrder');
     Route::post('purchase_order/add-barcode', 'Api\PurchaseOrderController@addBarcode');
-
     Route::post('purchase_order/add-more2', 'Api\PurchaseOrderController@addMoreOrder2');
 
     
@@ -161,13 +129,12 @@ function(){
     Route::post('sale_order', 'Api\PurchaseOrderController@multSaleOrder');
 
 
-    Route::post('filtered_attributes', 'Api\PurchaseOrderController@filterAttributes');
 
     Route::post('pos_order', 'Api\PosController@multPosOrder');
-     Route::post('edit/pos_order', 'Api\PosController@editMultPosOrder');
+    Route::post('edit/pos_order', 'Api\PosController@editMultPosOrder');
 
     
-    Route::post('pos/products', 'Api\PosController@products');
+    
     Route::post('pos_sales', 'Api\PosController@getPosSales');
     Route::post('pos_transactions', 'Api\PosController@getPosTransactions');
 
@@ -208,6 +175,35 @@ function(){
     Route::post('expenses', 'Api\ExpenseController@index');
     Route::post('update/expense', 'Api\ExpenseController@update');
 
+    }
+  );
+
+  Route::group(['middleware'=>['jwt.auth','CheckSubscription','CheckInventoryManager']],
+    function(){
+
+      Route::post('branches', 'Api\BranchController@index');
+      Route::post('allbranches', 'Api\BranchController@allbranches');
+
+      Route::post('pos/products', 'Api\PosController@products');
+
+      Route::post('stocks', 'Api\StockController@stocks');
+      Route::post('create/stocks', 'Api\NewStockController@save');
+      Route::post('stock/editprice', 'Api\NewStockController@editPriceAddMoreQty');
+      Route::post('stock/{stock}', 'Api\StockController@show');
+      Route::post('returnstock', 'Api\StockController@returnStock');
+      Route::post('movestock', 'Api\NewStockController@moveStock');
+
+      Route::post('products', 'Api\ProductController@index');
+      Route::post('product', 'Api\ProductController@save');
+      Route::put('product/{product}', 'Api\ProductController@update');
+      Route::get('product/{product}', 'Api\ProductController@show');
+
+      Route::post('confirm_order/{order}', 'Api\PurchaseOrderController@confirmOrder');
+      Route::post('return_order/{order}', 'Api\PurchaseOrderController@returnOrder');
+      Route::post('move_order/{order}', 'Api\PurchaseOrderController@moveOrder');
+      Route::post('add-barcode', 'Api\PurchaseOrderController@addBarcode');
+      
+      
     }
   );
 
@@ -259,6 +255,7 @@ function(){
 
     
   });
+
 
 
 

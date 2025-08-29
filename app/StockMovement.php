@@ -58,5 +58,10 @@ class StockMovement extends Model
         return $this->belongsTo(User::class, 'moved_by');
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'moved_by');
+    }
+
     
 }

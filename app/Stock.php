@@ -22,7 +22,8 @@ class Stock extends Model
         'product_image',
         'unit_selling_price',
         'unit_price',
-        'barcode'
+        'barcode',
+        'initial_quantity'
     ];
 
     
@@ -75,6 +76,16 @@ class Stock extends Model
 
         if($purchase_order){
             return $purchase_order->barcode;
+        }
+
+    }
+
+    public function getInitialQuantityAttribute()
+    {
+        $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
+
+        if($purchase_order){
+            return $purchase_order->stock_quantity;
         }
 
     }

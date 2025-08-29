@@ -37,7 +37,7 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     protected $appends = [
-        'name','branch_name'
+        'name','branch_name','role'
     ];
 
     /**
@@ -92,6 +92,17 @@ class User extends Authenticatable implements JWTSubject
         $branch = Branch::where('id',$this->branch_id)->first();
         if($branch)
         return $branch->name;
+    }
+
+    public function getRoleAttribute(){
+        $user = auth()->user();
+        if($user->admin == 1){
+            return 'Admin';
+        } else if($user->admin == 2){
+            return 'Inventory Manager';
+        } else {
+            return 'Cashier';
+        }
     }
 
     public function phone(){

@@ -54,6 +54,16 @@ class NewStockController extends Controller
         return response()->json(['purchase_order' => $purchaseOrder], 200);
     }
 
+    public function addBarcode(Request $request)
+    {
+       
+        $purchase_order = PurchaseOrder::findOrFail($request->id);
+        $purchase_order->barcode = $request->barcode;
+        $purchase_order->save();
+        
+        return response()->json(compact('purchase_order'), 200);
+    }
+
     public function update(Request $request, $stockId)
     {
         

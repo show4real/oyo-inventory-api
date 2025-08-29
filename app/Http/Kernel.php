@@ -64,6 +64,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'CheckAdmin' => \App\Http\Middleware\CheckAdmin::class,
         'CheckSubscription' => \App\Http\Middleware\CheckSubscription::class,
+        'CheckInventoryManager' => \App\Http\Middleware\CheckInventoryManager::class,
         'jwt.auth' => \Tymon\JWTAuth\Http\Middleware\Authenticate::class,
     ];
 

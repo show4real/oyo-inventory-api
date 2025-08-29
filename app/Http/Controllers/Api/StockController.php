@@ -49,7 +49,9 @@ class StockController extends Controller
 
         $stocks = $stocksQuery->with([
             'movementsFrom.toBranch', 
-            'movementsTo.fromBranch'
+            'movementsFrom.user',     // who moved FROM
+            'movementsTo.fromBranch',
+            'movementsTo.user', 
         ])->paginate($request->rows, ['*'], 'page', $request->page);
 
         $stock_quantity = 0;
@@ -69,9 +71,11 @@ class StockController extends Controller
         $branch = Branch::where('organization_id', auth()->user()->organization_id)->where('id',$request->branch_id)->first()->name;
         $product = $request->order !== null ? Product::where('id', $request->order)->first()->name : '';
 
+        $user = auth()->user();
+
       
        
-        return response()->json(compact('stocks','branch','product','stock_quantity','quantity_sold','instock'));
+        return response()->json(compact('stocks','branch','product','stock_quantity','quantity_sold','instock','user'));
        
     }
 
@@ -92,7 +96,7 @@ class StockController extends Controller
             ->paginate($request->rows, ['*'], 'page', $request->page);
        
        
-        return response()->json(compact('stocks'));
+        return response()->json(compact('stocks','user'));
        
     }
 

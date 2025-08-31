@@ -30,14 +30,15 @@ class Stock extends Model
     protected $hidden = ['product','branch'];
    
     protected $fillable = [
-    'purchase_order_id',
-    'branch_id',
-    'stock_quantity',
-    'product_id',
-    'supplier_id',
-    'organization_id',
-    'quantity_sold',
-    'expiry_date'
+        'purchase_order_id',
+        'branch_id',
+        'stock_quantity',
+        'product_id',
+        'supplier_id',
+        'organization_id',
+        'quantity_sold',
+        'expiry_date',
+        'invoice_no'
     ];
 
     public function order(){
@@ -99,7 +100,7 @@ class Stock extends Model
     {
     	$query->when($filter!=null, function ($query) use($filter) {
         $searchQuery = trim($filter);
-        $requestData = [ 'branch_id'];
+        $requestData = [ 'branch_id','invoice_no'];
         $productData = ['name'];
         $orderData=['tracking_id','supplier_id', 'stock_quantity','unit_price','barcode'];
         $branchData=['name'];

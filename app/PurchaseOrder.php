@@ -27,6 +27,7 @@ class PurchaseOrder extends Model
         'received_at',
         'confirmed_at',
         'quantity_sold',
+        'invoice_no'
     ];
 
     protected $dates = [ 'created_at' ];

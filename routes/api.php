@@ -88,6 +88,7 @@ function(){
     });
     
     Route::post('suppliers', 'Api\SupplierController@index');
+    Route::post('allsuppliers', 'Api\SupplierController@all');
     Route::post('addsuppliers', 'Api\SupplierController@save');
     Route::post('updatesupplier/{supplier}', 'Api\SupplierController@update');
     Route::get('supplier/{supplier}', 'Api\SupplierController@show');
@@ -188,6 +189,7 @@ function(){
 
       Route::post('stocks', 'Api\StockController@stocks');
       Route::post('create/stocks', 'Api\NewStockController@save');
+      Route::post('create/multstocks', 'Api\MultStockController@save');
       Route::post('stock/editprice', 'Api\NewStockController@editPriceAddMoreQty');
       Route::post('stock/{stock}', 'Api\StockController@show');
       Route::post('returnstock', 'Api\StockController@returnStock');

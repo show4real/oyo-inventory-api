@@ -26,6 +26,14 @@ class SupplierController extends Controller
 
     }
 
+    public function all(Request $request){
+        $suppliers = Supplier::where('organization_id', auth()->user()->organization_id)
+            ->select('id','name')
+            ->get();
+        return response()->json(compact('suppliers'));
+
+    }
+
     public function show(Supplier $supplier){
         
         $supplier = Supplier::where('id', $supplier->id)->first();

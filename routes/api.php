@@ -115,6 +115,7 @@ function(){
 
    
     Route::post('sales', 'Api\PurchaseOrderController@getSalesOrder');
+    Route::post('stocks2', 'Api\StockController@stocks2');
     
 
     Route::post('purchase_order', 'Api\PurchaseOrderController@stocks');
@@ -122,6 +123,8 @@ function(){
     Route::post('purchase_order/add-more', 'Api\PurchaseOrderController@addMoreOrder');
     Route::post('purchase_order/add-barcode', 'Api\PurchaseOrderController@addBarcode');
     Route::post('purchase_order/add-more2', 'Api\PurchaseOrderController@addMoreOrder2');
+
+    
 
     
 

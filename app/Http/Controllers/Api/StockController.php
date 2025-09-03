@@ -103,8 +103,14 @@ class StockController extends Controller
 
     public function stocks2(Request $request){
 
+        $user= auth()->user();
+
         $stocks=Stock::where('organization_id', auth()->user()->organization_id)
             ->search($request->search)
+            ->whereHas('branch', function ($query) {
+                $query->where('sell', 1);
+            })
+            ->where('branch_id', $user->branch_id)
             ->availableStock()
             ->product($request->order)
             ->with('order')

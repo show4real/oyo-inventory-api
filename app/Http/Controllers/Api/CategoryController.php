@@ -41,6 +41,18 @@ class CategoryController extends Controller
     }
 
 
+    public function addCategory(Request $request)
+    {
+        $category = new Category();
+        $category->name = $request->name;
+        $category->slug = str_slug($request->name);
+        $category->organization_id = auth()->user()->organization_id;
+        $category->save();
+
+        return response()->json(compact('category'));
+    }
+
+
     public function update(Request $request, Category $category){
 
         $validator = Validator::make($request->all(), [

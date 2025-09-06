@@ -65,6 +65,7 @@ function(){
 
     Route::post('categories', 'Api\CategoryController@index');
     Route::post('addcategories', 'Api\CategoryController@save');
+    Route::post('add/category', 'Api\CategoryController@addCategory');
     Route::post('updatecategory/{category}', 'Api\CategoryController@update');
     Route::get('categories/{category}', 'Api\CategoryController@show');
     Route::delete('categories/{category}', 'Api\CategoryController@delete');

@@ -193,6 +193,9 @@ function(){
 
       Route::post('stocks', 'Api\StockController@stocks');
       Route::post('create/stocks', 'Api\NewStockController@save');
+      Route::post('remove/expiry/stock', 'Api\NewStockController@removeExpiryStock');
+      Route::post('restore/expiry/stock', 'Api\NewStockController@restoreExpiryStock');
+      Route::post('deleted/expiry/stocks', 'Api\NewStockController@deletedExpiryStocks');
       Route::post('create/multstocks', 'Api\MultStockController@save');
       Route::post('stock/editprice', 'Api\NewStockController@editPriceAddMoreQty');
       Route::post('stock/{stock}', 'Api\StockController@show');

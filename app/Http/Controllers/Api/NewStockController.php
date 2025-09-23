@@ -10,6 +10,7 @@ use App\Product;
 use App\Stock;
 use App\StockMovement;
 use App\Branch;
+use App\ExpiredStock;
 use DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -271,10 +272,6 @@ class NewStockController extends Controller
             $stock->stock_quantity -= $quantity;
         }
 
-
-
-        
-
         $purchase_order->save();
         $stock->save();
 
@@ -284,6 +281,71 @@ class NewStockController extends Controller
             'stock' => $stock
         ], 200);
     }
+
+   
+    public function removeExpiryStock(Request $request)
+    {
+        $validated = $request->validate([
+            'id'       => 'required|integer|exists:stocks,id',
+            'in_stock' => 'required|integer|min:1',
+        ]);
+
+        $stock = Stock::findOrFail($validated['id']);
+
+        
+        $originalExpiry = $stock->expiry_date ?? now();
+
+        $stock->update([
+            'quantity_returned' => $validated['in_stock'],
+            'expiry_date'       => null,
+        ]);
+
+        $expiredStock = ExpiredStock::create([
+            'expiry_date' => $originalExpiry,
+            'stock_id'    => $stock->id,
+            'quantity'    => $validated['in_stock'],
+            'branch_id'   => $stock->branch_id,
+            'removed_by'  => auth()->id(),
+            'organization_id' => auth()->user()->organization_id
+        ]);
+
+        return response()->json([
+            'stock'        => $stock,
+            'expiredStock' => $expiredStock,
+            'message'      => 'Stock removed successfully due to expiry.',
+        ], 200);
+    }
+
+    public function deletedExpiryStocks(Request $request){
+
+        $expiry_stocks = ExpiredStock::where('organization_id',  auth()->user()->organization_id)
+        ->where('branch_id', $request->branch_id)
+        ->with('stock')
+        ->paginate($request->rows, ['*'], 'page', $request->page);
+
+        return response()->json(compact('expiry_stocks'));
+    }
+
+
+    public function restoreExpiryStock(Request $request)
+    {
+        $validated = $request->validate([
+            'id'          => 'required|integer|exists:stocks,id',
+            'quantity'    => 'required|integer|min:1',
+            'expiry_date' => 'required|date',
+        ]);
+
+        $stock = Stock::findOrFail($validated['id']);
+
+        $stock->update([
+            'quantity_returned' => $validated['quantity'],
+            'expiry_date'       => $validated['expiry_date'],
+        ]);
+
+        ExpiredStock::where('stock_id', $stock->id)->delete();
+    }
+
+
 
 
 

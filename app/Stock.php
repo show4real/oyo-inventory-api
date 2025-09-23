@@ -38,7 +38,8 @@ class Stock extends Model
         'organization_id',
         'quantity_sold',
         'expiry_date',
-        'invoice_no'
+        'invoice_no',
+        'quantity_returned'
     ];
 
     public function order(){
@@ -246,19 +247,12 @@ class Stock extends Model
     }
 
     
-
-   
-
     public function scopeProduct($query, $filter){
        if($filter != null){
         return $query->where("product_id",$filter)->latest();
        }
     }
 
-
-    
-
-   
 
     public function scopeBranch($query, $filter)
     {
@@ -276,7 +270,7 @@ class Stock extends Model
     public function scopeExpiryDate($query, $filter)
     {
         if ($filter != null) {
-            return $query->whereDate('expiry_date', '>', $filter);
+            return $query->whereDate('expiry_date', '=', $filter);
         }
         return $query;
     }

@@ -145,7 +145,7 @@ class NewStockController extends Controller
             'to_branch_id' => 'required|exists:branches,id|different:from_branch_id',
             'quantity' => 'required|integer|min:1',
             'product_id' => 'required|exists:products,id',
-            'order_id' => 'required|exists:purchase_order,id', // or whatever your orders table is called
+            'order_id' => 'required|exists:purchase_order,id',
         ]);
 
         if ($validator->fails()) {
@@ -189,7 +189,8 @@ class NewStockController extends Controller
             if ($existingDestinationStock) {
                 // If stock exists, add to existing stock
                 $existingDestinationStock->update([
-                    'stock_quantity' => $existingDestinationStock->stock_quantity + $quantity
+                    'stock_quantity' => $existingDestinationStock->stock_quantity + $quantity,
+                    'expiry_date' => $request->expiry_date
                 ]);
                 $newStock = $existingDestinationStock;
             } else {
@@ -200,7 +201,8 @@ class NewStockController extends Controller
                     'purchase_order_id' => $orderId,
                     'stock_quantity' => $quantity,
                     'quantity_sold' => 0,
-                    'organization_id' => auth()->user()->organization_id
+                    'organization_id' => auth()->user()->organization_id,
+                    'expiry_date' => $request->expiry_date
                 ]);
             }
 
@@ -320,6 +322,7 @@ class NewStockController extends Controller
 
         $expiry_stocks = ExpiredStock::where('organization_id',  auth()->user()->organization_id)
         ->where('branch_id', $request->branch_id)
+        ->expiryDateBetween($request->start_date, $request->end_date)
         ->with('stock')
         ->paginate($request->rows, ['*'], 'page', $request->page);
 
@@ -338,7 +341,7 @@ class NewStockController extends Controller
         $stock = Stock::findOrFail($validated['id']);
 
         $stock->update([
-            'quantity_returned' => $validated['quantity'],
+            'quantity_returned' => 0,
             'expiry_date'       => $validated['expiry_date'],
         ]);
 

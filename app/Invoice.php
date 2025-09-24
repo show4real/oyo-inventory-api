@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use App\Client;
 use App\User;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -167,6 +168,16 @@ class Invoice extends Model
             });
         });
 
+    }
+
+    public function scopeSearchByClientName(Builder $query, $name)
+    {
+        if (!empty($name)) {
+            $query->whereHas('client', function ($q) use ($name) {
+                $q->where('name', 'like', '%' . $name . '%');
+            });
+        }
+        return $query;
     }
 
     public function payments(){

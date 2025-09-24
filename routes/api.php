@@ -167,6 +167,7 @@ function(){
     Route::post('deleteclient/{client}', 'Api\ClientController@delete');
     Route::post('updateclient/{client}', 'Api\ClientController@update');
     Route::post('cashiers', 'Api\ClientController@cashiers');
+    Route::post('clients/balance', 'Api\ClientController@clientsBalance');
 
     Route::post('clients/payments', 'Api\ClientController@clientPayments');
 

@@ -21,4 +21,21 @@ class ExpiredStock extends Model
     {
         return $this->belongsTo(Stock::class, 'stock_id');
     }
+
+    public function scopeExpiryDateBetween($query, $start_date = null, $end_date = null)
+    {
+        if ($start_date && $end_date) {
+            return $query->whereBetween('expiry_date', [$start_date, $end_date]);
+        }
+
+        if ($start_date) {
+            return $query->whereDate('expiry_date', '>=', $start_date);
+        }
+
+        if ($end_date) {
+            return $query->whereDate('expiry_date', '<=', $end_date);
+        }
+
+        return $query;
+    }
 }

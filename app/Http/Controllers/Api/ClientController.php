@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Validator;
+use DB;
 use App\Client;
 use App\Invoice;
-use Validator;
 use App\User;
 use App\Payment;
 
@@ -132,5 +133,16 @@ class ClientController extends Controller
         }
 
         return response()->json(compact('payments'));
+    }
+
+    public function clientsBalance(Request $request) {
+        $balances = Invoice::select('client_id', DB::raw('SUM(amount - amount_paid) as total_client_balance'),
+        DB::raw('MAX(due_date) as due_date'))
+        ->with('client')
+        ->groupBy('client_id')
+        ->searchByClientName($request->search)
+        ->paginate($request->rows, ['*'], 'page', $request->page);
+
+        return response()->json(compact('balances'));
     }
 }

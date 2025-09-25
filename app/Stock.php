@@ -270,10 +270,42 @@ class Stock extends Model
     public function scopeExpiryDate($query, $filter)
     {
         if ($filter != null) {
-            return $query->whereDate('expiry_date', '=', $filter);
+            $today = now();
+
+            switch ($filter) {
+                case '7':
+                    $endDate = $today->copy()->addDays(7);
+                    break;
+                case '14':
+                    $endDate = $today->copy()->addDays(14);
+                    break;
+                case '30': // 1 month
+                    $endDate = $today->copy()->addMonth();
+                    break;
+                case '90': // 3 months
+                    $endDate = $today->copy()->addMonths(3);
+                    break;
+                case '180': // 6 months
+                    $endDate = $today->copy()->addMonths(6);
+                    break;
+                case '365': // 1 year
+                    $endDate = $today->copy()->addYear();
+                    break;
+                default:
+                    $endDate = null;
+            }
+
+            if ($endDate) {
+                // products expiring from today until the chosen duration
+                return $query->whereBetween('expiry_date', [$today, $endDate]);
+            }
         }
+
         return $query;
     }
+
+
+
 
     public function scopeEnddate($query, $filter){
         if($filter != null){

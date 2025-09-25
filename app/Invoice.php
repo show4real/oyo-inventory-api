@@ -180,6 +180,27 @@ class Invoice extends Model
         return $query;
     }
 
+    
+
+    public function scopeFilterDueDate($query, $start_date, $end_date)
+    {
+        if ($start_date && $end_date) {
+            return $query->havingRaw('MAX(due_date) BETWEEN ? AND ?', [$start_date, $end_date]);
+        }
+
+        if ($start_date) {
+            return $query->havingRaw('MAX(due_date) >= ?', [$start_date]);
+        }
+
+        if ($end_date) {
+            return $query->havingRaw('MAX(due_date) <= ?', [$end_date]);
+        }
+
+        return $query;
+    }
+
+
+
     public function payments(){
         return $this->hasMany('App\Payment', 'invoice_id');
     }

@@ -136,13 +136,20 @@ class ClientController extends Controller
     }
 
     public function clientsBalance(Request $request) {
-        $balances = Invoice::select('client_id', DB::raw('SUM(amount - amount_paid) as total_client_balance'),
-        DB::raw('MAX(due_date) as due_date'))
-        ->with('client')
-        ->groupBy('client_id')
-        ->searchByClientName($request->search)
-        ->paginate($request->rows, ['*'], 'page', $request->page);
+        $balances = Invoice::select(
+                'client_id',
+                DB::raw('SUM(amount - amount_paid) as total_client_balance'),
+                DB::raw('MAX(due_date) as due_date')
+            )
+            ->with('client')
+            ->groupBy('client_id')
+            ->havingRaw('SUM(amount - amount_paid) > 0')
+            ->searchByClientName($request->search)
+            ->filterDueDate($request->start_date, $request->end_date)
+            ->paginate($request->rows, ['*'], 'page', $request->page);
 
         return response()->json(compact('balances'));
     }
+
+
 }

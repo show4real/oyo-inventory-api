@@ -419,7 +419,7 @@ class PosController extends Controller
         $total_delivery_fee = $invoice->sum('delivery_fee');
         $total_discount = $invoice->sum('discount');
 
-        $total_amount = $invoice->sum('amount');
+        $total_amount = ($total_delivery_fee + $total_sales) - $total_discount;
 
         $total_amount_paid = $invoice->sum('amount_paid');
 

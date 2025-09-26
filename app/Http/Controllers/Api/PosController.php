@@ -398,8 +398,9 @@ class PosController extends Controller
         // ->order($request->order)
         ->employee($request->user)
         ->branch($request->branch)
-        ->startdate($request->fromdate)
-        ->enddate($request->todate)->get();
+        //->startdate($request->fromdate)
+        //->enddate($request->todate)
+        ->get();
         $total_sales=0;
         foreach($sales as $sale){
             
@@ -411,8 +412,8 @@ class PosController extends Controller
         ->search($request->search)
         // ->order($request->order)
         ->cashier($request->user)
-        ->filter1($request->fromdate)
-        ->filter2($request->todate)
+        //->filter1($request->fromdate)
+        //->filter2($request->todate)
         ->get();
 
         $total_delivery_fee = $invoice->sum('delivery_fee');

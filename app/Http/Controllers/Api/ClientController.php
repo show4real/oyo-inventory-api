@@ -136,7 +136,8 @@ class ClientController extends Controller
     }
 
     public function clientsBalance(Request $request) {
-        $balances = Invoice::select(
+        $balances = Invoice::where('organization_id', auth()->user()->organization_id)
+                ->select(
                 'client_id',
                 DB::raw('SUM(amount - amount_paid) as total_client_balance'),
                 DB::raw('MAX(due_date) as due_date')

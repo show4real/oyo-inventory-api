@@ -10,14 +10,16 @@ use App\Client;
 use App\Invoice;
 use App\User;
 use App\Payment;
+use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
     public function index(Request $request){
         $clients = Client::where('organization_id', auth()->user()->organization_id)
-        ->search($request->search)
-        ->latest()
-        ->paginate($request->rows, ['*'], 'page', $request->page);
+            ->withCount(['invoices as invoice_count'])
+            ->search($request->search)
+            ->latest()
+            ->paginate($request->rows, ['*'], 'page', $request->page);
         return response()->json(compact('clients'));
     }
 
@@ -42,34 +44,122 @@ class ClientController extends Controller
         return response()->json(compact('client'),200);
     }
 
-    public function save(Request $request){
-      
+
+    public function save(Request $request)
+    {
+        $orgId = auth()->user()->organization_id;
+
+    
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'email' => [
+                'nullable',
+                'email',
+                Rule::unique('clients')->where(function ($q) use ($orgId) {
+                    return $q->where('organization_id', $orgId);
+                }),
+            ],
+
+            'phone' => [
+                'nullable',
+                Rule::unique('clients')->where(function ($q) use ($orgId) {
+                    return $q->where('organization_id', $orgId);
+                }),
+            ],
+
+            'address' => 'nullable|string',
+        ]);
+
        
-        $client= new Client();
-        $client->name=$request->name;
-        $client->email =$request->email;
-        $client->phone = $request->phone;
-        $client->address = $request->address;
-        $client->organization_id = auth()->user()->organization_id;
-        $client->save();
-        return response()->json(compact('client'));
+        $normalizedName  = strtolower(trim($request->name));
+        $normalizedEmail = strtolower(trim($request->email));
+
+        if ($normalizedName === 'general client' ||
+            $normalizedEmail === 'generalclient@gmail.com') {
+
+            $exists = Client::where('organization_id', $orgId)
+                ->where(function ($q) use ($normalizedName, $normalizedEmail) {
+                    $q->whereRaw('LOWER(name) = ?', [$normalizedName])
+                    ->orWhereRaw('LOWER(email) = ?', [$normalizedEmail]);
+                })
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'General Client or its email already exists for this organization.'
+                ], 422);
+            }
+        }
+
+        $client = Client::create([
+            'name'            => $request->name,
+            'email'           => $request->email,
+            'phone'           => $request->phone,
+            'address'         => $request->address,
+            'organization_id' => $orgId,
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'client' => $client
+        ], 201);
     }
+
+
 
     public function update(Request $request, Client $client){
 
-        // $validator = Validator::make($request->all(), [
-        //     'email' => 'unique:clients,email,'. $client->id
-        // ]);
+        $orgId = auth()->user()->organization_id;
 
-        // if($validator->fails()){
-        //   return response()->json($validator->messages(), 422);
-        // }
-       
-        $client->name=$request->name;
-        $client->email =$request->email;
+        // ensure client belongs to the user's organization
+        if ($client->organization_id !== $orgId) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Disable editing if this is the General Client record for the org
+        if (strtolower(trim($client->name)) === 'general client' ||
+            strtolower(trim($client->email ?? '')) === 'generalclient@gmail.com') {
+            return response()->json(['error' => 'Cannot edit General Client'], 422);
+        }
+
+        // validate incoming data (respecting uniqueness within organization, ignoring this client)
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'email' => [
+                'nullable',
+                'email',
+                Rule::unique('clients')->where(function ($q) use ($orgId) {
+                    return $q->where('organization_id', $orgId);
+                })->ignore($client->id),
+            ],
+
+            'phone' => [
+                'nullable',
+                Rule::unique('clients')->where(function ($q) use ($orgId) {
+                    return $q->where('organization_id', $orgId);
+                })->ignore($client->id),
+            ],
+
+            'address' => 'nullable|string',
+        ]);
+
+        $client->name = $request->name;
+        $client->email = $request->email;
         $client->phone = $request->phone;
         $client->address = $request->address;
         $client->save();
+
         return response()->json(compact('client'));
     }
     public function search(Request $request){
@@ -79,8 +169,46 @@ class ClientController extends Controller
     }
 
     public function delete($id, Request $request){
+        $orgId = auth()->user()->organization_id;
         $client = Client::findOrFail($id);
+
+        // ensure client belongs to the user's organization
+        if ($client->organization_id !== $orgId) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Prevent deleting the general client
+        if (strtolower(trim($client->name)) === 'general client') {
+            return response()->json(['error' => 'Cannot delete General Client'], 422);
+        }
+
+        // Find or create the "General Client" for this organization
+        $generalClient = Client::where('organization_id', $orgId)
+            ->whereRaw('LOWER(name) = ?', ['general client'])
+            ->first();
+
+        if (! $generalClient) {
+            $generalClient = Client::create([
+                'name'            => 'General Client',
+                'email'           => 'generalclient@gmail.com',
+                'phone'           => null,
+                'address'         => null,
+                'organization_id' => $orgId,
+            ]);
+        }
+
+        // Reassign invoices and payments to the general client
+        Invoice::where('organization_id', $orgId)
+            ->where('client_id', $client->id)
+            ->update(['client_id' => $generalClient->id]);
+
+        Payment::where('organization_id', $orgId)
+            ->where('client_id', $client->id)
+            ->update(['client_id' => $generalClient->id]);
+
+        // Delete the client
         $client->delete();
+
         return response()->json(true);
     }
 

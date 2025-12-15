@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\RegisterController;
 use App\Http\Controllers\Api\BarcodeController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -247,6 +248,12 @@ function(){
     Route::post('transaction_details2', 'Api\PosController@getTransactionDetails2');
     Route::get('company', 'Api\CompanySettingsController@index');
 
+    Route::post('save-for-later', 'Api\PosController@saveSaleForLater')->name('pos.save.for.later');
+    Route::get('saved/{transaction_id}', 'Api\PosController@fetchSavedTransaction')->name('pos.fetch.saved');
+    Route::post('saved-carts', 'Api\PosController@fetchAllSavedTransaction')->name('pos.fetch.all.saved');
+    Route::post('delete/saved/{id}', 'Api\PosController@deleteSavedTransaction')->name('pos.fetch.all.delete');
+    
+
 
     
   });
@@ -265,6 +272,7 @@ function(){
 
     
   });
+
 
 
 

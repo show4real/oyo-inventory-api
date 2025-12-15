@@ -17,6 +17,8 @@ use App\CompanySettings;
 use App\Invoice;
 use App\Payment;
 use DB;
+use App\SavedTransaction;
+use App\SavedTransactionItem;
 
 class PosController extends Controller
 {
@@ -482,5 +484,148 @@ class PosController extends Controller
         return response()->json(compact('transaction_detail'));
     }
 
-    
+    public function saveSaleForLater(Request $request)
+    {
+        $organization_id = auth()->user()->organization_id;
+        $user_id = auth()->user()->id;
+
+        if (! $request->cart_items || ! is_array($request->cart_items) || count($request->cart_items) === 0) {
+            return response()->json(['error' => 'No cart items provided'], 400);
+        }
+
+        try {
+            return DB::transaction(function () use ($request, $organization_id, $user_id) {
+                $transactionId = time();
+                $totalAmount = 0;
+
+                $saved = SavedTransaction::create([
+                    'transaction_id' => $transactionId,
+                    'organization_id' => $organization_id,
+                    'user_id' => $user_id,
+                    'notes' => $request->notes ?? null,
+                    'total_amount' => 0,
+                ]);
+
+                foreach ($request->cart_items as $item) {
+                    $stockId = $item['stock_id'] ?? $item['id'] ?? null;
+                    $productId = $item['product_id'] ?? null;
+                    $quantity = intval($item['quantity'] ?? 0);
+                    $unitPrice = floatval($item['unit_price'] ?? ($item['order']['unit_selling_price'] ?? 0));
+                    $totalPrice = $quantity * $unitPrice;
+
+                    if ($stockId) {
+                        $stock = Stock::firstOrNew(['id' => $stockId]);
+                        $stock->quantity_saved = (int) ($stock->quantity_saved ?? 0) + $quantity;
+                        if (isset($stock->organization_id) && ! $stock->organization_id) {
+                            $stock->organization_id = $organization_id;
+                        }
+                        $stock->save();
+                    }
+
+                    SavedTransactionItem::create([
+                        'saved_transaction_id' => $saved->id,
+                        'stock_id' => $stockId,
+                        'product_id' => $productId,
+                        'quantity' => $quantity,
+                        'unit_price' => $unitPrice,
+                        'total_price' => $totalPrice,
+                    ]);
+
+                    $totalAmount += $totalPrice;
+                }
+
+                $saved->total_amount = $totalAmount;
+                $saved->save();
+
+                return response()->json([
+                    'status' => true,
+                    'saved_transaction_id' => $transactionId,
+                    'saved_id' => $saved->id,
+                    'total_amount' => $totalAmount,
+                ]);
+            });
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Save failed: '.$e->getMessage()], 500);
+        }
+    }
+
+    public function fetchSavedTransaction(Request $request)
+    {
+        $organization_id = auth()->user()->organization_id;
+
+        if (! $request->transaction_id && ! $request->saved_id) {
+            return response()->json(['error' => 'transaction_id or saved_id required'], 400);
+        }
+
+        $query = SavedTransaction::with(['items.stock.order'])->where('organization_id', $organization_id);
+
+        if ($request->transaction_id) {
+            $query->where('transaction_id', $request->transaction_id);
+        } else {
+            $query->where('id', $request->saved_id);
+        }
+
+        $transaction = $query->first();
+
+        if (! $transaction) {
+            return response()->json(['error' => 'transaction not found'], 404);
+        }
+
+        return response()->json(compact('transaction'));
+    }
+
+   
+    public function fetchAllSavedTransaction(Request $request)
+    {
+        $organization_id = auth()->user()->organization_id;
+        $rows = (int) ($request->rows ?? 25);
+
+        $transactions = SavedTransaction::with(['items.stock.order', 'user'])
+            ->where('organization_id', $organization_id)
+            ->search($request->search)
+            ->latest()
+            ->paginate($rows, ['*'], 'page', $request->page);
+
+        return response()->json(compact('transactions'));
+    }
+
+    public function deleteSavedTransaction($id)
+    {
+        $organization_id = auth()->user()->organization_id;
+
+        try {
+            return DB::transaction(function () use ($id, $organization_id) {
+                $saved = SavedTransaction::where('transaction_id', $id)
+                    ->where('organization_id', $organization_id)
+                    ->with('items')
+                    ->first();
+
+                if (! $saved) {
+                    return response()->json(['error' => 'Saved transaction not found'], 404);
+                }
+
+                foreach ($saved->items as $item) {
+                    
+                    if ($item->stock_id) {
+                        $stock = Stock::find($item->stock_id);
+                        if ($stock) {
+                            $current = (int) ($stock->quantity_saved ?? 0);
+                            $deduct = (int) $item->quantity;
+                            $new = max(0, $current - $deduct);
+
+                            $stock->quantity_saved = $new;
+                            $stock->save();
+                        }
+                    }
+                    $item->delete();
+                }
+
+                $saved->delete();
+
+                return response()->json(['status' => true]);
+            });
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Delete failed: ' . $e->getMessage()], 500);
+        }
+    }
 }

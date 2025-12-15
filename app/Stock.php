@@ -134,8 +134,11 @@ class Stock extends Model
     public function getInstockAttribute(){
         $sold=$this->quantity_sold;
         $return=$this->quantity_returned;
+        $saved = $this->quantity_saved;
+
         $stock=$this->stock_quantity;
-        $qty=$sold+$return;
+        $qty=$sold+$return+$saved;
+
         $instock=$stock-$qty;
         return $instock;
     }

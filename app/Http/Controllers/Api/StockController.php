@@ -41,6 +41,7 @@ class StockController extends Controller
             ->where('branch_id', $request->branch_id)
             ->search($request->search)
             ->product($request->order) // assuming this is filtering by product_id
+            ->inStock($request->in_stock)
             ->startdate($request->start_date)
             ->enddate($request->end_date)
             ->expiryDate($request->expiry_date)

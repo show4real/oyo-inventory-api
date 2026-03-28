@@ -52,6 +52,45 @@ class Stock extends Model
         return $query->whereRaw('stock_quantity - quantity_sold > 0');
     }
 
+    /**
+     * Filter stocks by availability.
+     * Accepts: 'available'|'unavailable' or 1|0 (or numeric strings).
+     * - available / 1 => stock_quantity - quantity_sold > 0
+     * - unavailable / 0 => stock_quantity - quantity_sold = 0
+     */
+    public function scopeInStock($query, $filter)
+    {
+        if ($filter === null) {
+            return $query;
+        }
+
+        // normalize
+        if (is_string($filter)) {
+            $filter = trim(strtolower($filter));
+        }
+
+        // treat 'available' or truthy numeric > 0 as available
+        if ($filter === 'available' || $filter === '1' || $filter === 1) {
+            return $query->whereRaw('stock_quantity - quantity_sold > 0');
+        }
+
+        // treat 'unavailable' or '0' or 0 as out of stock (== 0)
+        if ($filter === 'unavailable' || $filter === '0' || $filter === 0) {
+            return $query->whereRaw('stock_quantity - quantity_sold = 0');
+        }
+
+        // if numeric string like '2' or any other numeric, use numeric comparison
+        if (is_numeric($filter)) {
+            if (intval($filter) > 0) {
+                return $query->whereRaw('stock_quantity - quantity_sold > 0');
+            }
+            return $query->whereRaw('stock_quantity - quantity_sold = 0');
+        }
+
+        // fallback: return unmodified
+        return $query;
+    }
+
     public function getUnitSellingPriceAttribute()
     {
         $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();

@@ -221,13 +221,15 @@ class Pos extends Model
     public function getAmountAttribute(){
          $invoice= Invoice::where('id', $this->invoice_id)->first();
 
-         return $invoice->amount ?? 'N/A';
+         // Always return a number. Returning a string like 'N/A' here breaks
+         // arithmetic on the frontend (e.g. bulk checkout receipts) and shows NaN.
+         return $invoice->amount ?? 0;
     }
 
     public function getAmountPaidAttribute(){
          $invoice= Invoice::where('id', $this->invoice_id)->first();
 
-         return $invoice->amount_paid ?? 'N/A';
+         return $invoice->amount_paid ?? 0;
     }
 
 }

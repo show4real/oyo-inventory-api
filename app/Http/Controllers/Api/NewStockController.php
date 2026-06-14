@@ -167,23 +167,33 @@ class NewStockController extends Controller
             $productId = $request->product_id;
             $orderId = $request->order_id;
 
-            // 1. Get the original stock record with relationships
+            // 0. Lock the parent order first. The destination row is keyed by
+            // purchase_order_id, so locking the order serializes all concurrent /
+            // double-submitted moves for it and prevents both lost updates and
+            // duplicate destination stock rows.
+            PurchaseOrder::where('id', $orderId)->lockForUpdate()->first();
+
+            // 1. Get (and lock) the original stock record
             $originalStock = Stock::where('id', $stockId)
                 ->where('branch_id', $fromBranchId)
+                ->lockForUpdate()
                 ->first();
 
             if (!$originalStock) {
                 throw new \Exception('Stock not found or does not belong to the specified branch');
             }
 
-            // 2. Calculate available stock (stock_quantity - quantity_sold)
+            // 2. Never move more than what is actually available in the source.
             $availableStock = $originalStock->stock_quantity - $originalStock->quantity_sold;
+            if ($quantity > $availableStock) {
+                throw new \Exception("Cannot move {$quantity}; only {$availableStock} unit(s) available in the source branch.");
+            }
 
-
-            // 4. Check if stock already exists for the same product/order in destination branch
+            // 4. Check (and lock) destination stock for the same product/order/branch
             $existingDestinationStock = Stock::where('branch_id', $toBranchId)
                 ->where('product_id', $productId)
                 ->where('purchase_order_id', $orderId)
+                ->lockForUpdate()
                 ->first();
 
             if ($existingDestinationStock) {
@@ -206,7 +216,7 @@ class NewStockController extends Controller
                 ]);
             }
 
-        
+
             $originalStock->update([
                 'stock_quantity' => $originalStock->stock_quantity - $quantity
             ]);

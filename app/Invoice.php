@@ -21,6 +21,7 @@ class Invoice extends Model
     protected $fillable = [
         'invoice_no',
         'transaction_id',
+        'idempotency_key',
         'cashier_id',
         'description',
         'payment_type',

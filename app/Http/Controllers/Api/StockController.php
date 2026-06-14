@@ -39,6 +39,7 @@ class StockController extends Controller
 
         $stocksQuery = Stock::where('organization_id', auth()->user()->organization_id)
             ->where('branch_id', $request->branch_id)
+            ->orderByAvailable($request->sort ?? 'desc') // primary sort: highest available first by default; request can flip to 'unavailable'/'asc'
             ->search($request->search)
             ->product($request->order) // assuming this is filtering by product_id
             ->inStock($request->in_stock)

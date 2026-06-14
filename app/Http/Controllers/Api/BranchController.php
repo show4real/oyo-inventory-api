@@ -7,13 +7,29 @@ use Illuminate\Http\Request;
 use Validator;
 use Str;
 use App\Branch;
+use App\Stock;
 
 
 class BranchController extends Controller
 {
     public function index(Request $request){
-        $branches = Branch::where('organization_id', auth()->user()->organization_id)->withCount('stocks')
-            //->with('stocks')
+        // stocks_count = total units actually available in the branch, not the
+        // number of stock rows. Counting rows overstated the figure: rows that
+        // are fully sold or fully moved out to another branch stay in the table
+        // (stock_quantity hits 0 but the row is never deleted), so a row count
+        // never dropped after a transfer. We sum the real available quantity
+        // (stock_quantity - sold - returned - saved) instead, reusing the same
+        // expression the Stock model uses for in-stock filtering.
+        $availableQty = Stock::availableQtyExpression();
+
+        $branches = Branch::where('organization_id', auth()->user()->organization_id)
+            ->select('branches.*')
+            ->selectSub(function ($query) use ($availableQty) {
+                $query->from('stocks')
+                    ->whereColumn('stocks.branch_id', 'branches.id')
+                    ->whereNull('stocks.deleted_at')
+                    ->selectRaw('COALESCE(SUM(' . $availableQty . '), 0)');
+            }, 'stocks_count')
             ->search($request->search)
             ->paginate($request->rows, ['*'], 'page', $request->page);
         return response()->json(compact('branches'));

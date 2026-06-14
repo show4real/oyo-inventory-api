@@ -264,11 +264,22 @@ class ClientController extends Controller
     }
 
     public function clientsBalance(Request $request) {
-        $balances = Invoice::where('organization_id', auth()->user()->organization_id)
+        $orgId = (int) auth()->user()->organization_id;
+
+        // due_date reflects the client's LAST transaction (most recent invoice),
+        // not MAX(due_date) across all invoices: an older invoice can have a later
+        // due date and would otherwise win. A correlated subquery picks the
+        // due_date of the newest invoice per client (created_at, tie-broken by id).
+        $balances = Invoice::where('organization_id', $orgId)
                 ->select(
                 'client_id',
                 DB::raw('SUM(amount - amount_paid) as total_client_balance'),
-                DB::raw('MAX(due_date) as due_date')
+                DB::raw('(SELECT i2.due_date FROM invoices i2
+                          WHERE i2.client_id = invoices.client_id
+                            AND i2.organization_id = ' . $orgId . '
+                            AND i2.deleted_at IS NULL
+                          ORDER BY i2.created_at DESC, i2.id DESC
+                          LIMIT 1) as due_date')
             )
             ->with('client')
             ->groupBy('client_id')

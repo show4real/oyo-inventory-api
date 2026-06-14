@@ -39,8 +39,26 @@ class PosController extends Controller
             return response()->json(['error' => 'No cart items provided'], 400);
         }
 
+        // Build an idempotency key so a double-clicked button or an automatic
+        // client retry does not create the same checkout twice. Prefer a key
+        // supplied by the client; otherwise fall back to a fingerprint of the
+        // payload (only deduped within a short window, see below).
+        $effectiveKey = $this->buildIdempotencyKey($request, $organization_id, $user_id);
+        $lockName = 'pos_checkout_' . md5($effectiveKey);
+
+        // Serialize concurrent identical requests at the database level. This is
+        // reliable regardless of the configured cache driver.
+        DB::selectOne('SELECT GET_LOCK(?, ?) AS acquired', [$lockName, 10]);
+
         try {
-            return DB::transaction(function () use ($request, $organization_id, $user_id) {
+            // If this checkout was already processed, return the original
+            // transaction instead of creating a duplicate.
+            $existing = $this->findDuplicateInvoice($effectiveKey, $organization_id, $request);
+            if ($existing) {
+                return $this->posTransactionResponse($existing, $organization_id);
+            }
+
+            return DB::transaction(function () use ($request, $organization_id, $user_id, $effectiveKey) {
                 $companySettings = CompanySettings::where('organization_id', $organization_id)->first();
                 $currency = $companySettings->currency;
                 $sell_by_serial_no = $companySettings->sell_by_serial_no;
@@ -89,6 +107,7 @@ class PosController extends Controller
                 $invoice = new Invoice();
                 $invoice->invoice_no = $request->invoice_no;
                 $invoice->transaction_id = $transact_id;
+                $invoice->idempotency_key = $effectiveKey;
                 $invoice->cashier_id = $user_id;
                 $invoice->organization_id = $organization_id;
                 $invoice->description = "Sales from POS Menu";
@@ -152,7 +171,103 @@ class PosController extends Controller
             });
         } catch (\Exception $e) {
             return response()->json(['error' => 'Transaction failed: ' . $e->getMessage()], 500);
+        } finally {
+            DB::selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
         }
+    }
+
+    /**
+     * Build a stable key identifying this checkout attempt. A client may send
+     * an `idempotency_key` (recommended: a UUID generated once per checkout and
+     * resent on retry). When absent we derive a fingerprint from the payload so
+     * accidental rapid re-submits are still caught within a short time window.
+     */
+    private function buildIdempotencyKey(Request $request, $organization_id, $user_id)
+    {
+        if ($request->idempotency_key) {
+            return 'pos:key:' . $organization_id . ':' . $request->idempotency_key;
+        }
+
+        $items = collect($request->cart_items)->map(function ($item) {
+            return [
+                'id' => $item['id'] ?? null,
+                'qty' => $item['quantity'] ?? null,
+                'price' => $item['order']['unit_selling_price'] ?? null,
+            ];
+        })->sortBy('id')->values()->all();
+
+        $fingerprint = md5(json_encode([
+            'org' => $organization_id,
+            'user' => $user_id,
+            'client' => $request->client_id,
+            'payment_mode' => $request->payment_mode,
+            'amount_paid' => $request->amount_paid,
+            'delivery_fee' => $request->delivery_fee,
+            'discount' => $request->discount,
+            'items' => $items,
+        ]));
+
+        return 'pos:auto:' . $organization_id . ':' . $fingerprint;
+    }
+
+    /**
+     * Look for an already-processed checkout with this idempotency key. A
+     * client-supplied key matches at any time (a retry must never duplicate);
+     * an auto-derived fingerprint only matches within a short window so genuine
+     * repeat sales of the same cart are still allowed.
+     */
+    private function findDuplicateInvoice($effectiveKey, $organization_id, Request $request)
+    {
+        $query = Invoice::where('organization_id', $organization_id)
+            ->where('idempotency_key', $effectiveKey);
+
+        if (!$request->idempotency_key) {
+            $query->where('created_at', '>=', Carbon::now()->subSeconds(20));
+        }
+
+        return $query->latest()->first();
+    }
+
+    /**
+     * Build the standard checkout response payload for a given invoice. Used
+     * both for a freshly created transaction and when returning the original
+     * one for a duplicate (idempotent) request.
+     */
+    private function posTransactionResponse(Invoice $invoice, $organization_id)
+    {
+        $invoice = Invoice::where('organization_id', $organization_id)
+            ->where('id', $invoice->id)
+            ->with('payments')
+            ->with('client')
+            ->first();
+
+        $pos_items = Pos::where('organization_id', $organization_id)
+            ->where('invoice_id', $invoice->id)
+            ->with('stock')
+            ->with('order')
+            ->get();
+
+        $invoices = Invoice::where('organization_id', $organization_id)
+            ->where('client_id', $invoice->client_id)
+            ->get();
+
+        $balance = $invoice->amount - $invoice->amount_paid;
+        $total_balance = $invoices->sum('client_balance');
+        $prev_balance = $total_balance - $balance;
+        $payment_mode = $invoice->payment_mode;
+        $pos_order = $pos_items;
+        $sold_at = $invoice->issued_date ?? $invoice->created_at;
+
+        return response()->json(compact(
+            'pos_order',
+            'sold_at',
+            'payment_mode',
+            'invoice',
+            'pos_items',
+            'total_balance',
+            'balance',
+            'prev_balance'
+        ));
     }
 
     public function editMultPosOrder(Request $request)
@@ -164,8 +279,27 @@ class PosController extends Controller
             return response()->json(['error' => 'No cart items provided'], 400);
         }
 
+        // Identify this edit attempt so a double-submit does not re-run the
+        // delete-and-recreate twice. The key is scoped to the invoice being
+        // edited.
+        $effectiveKey = $this->buildIdempotencyKey($request, $organization_id, $user_id)
+            . ':inv:' . $request->invoice_id;
+
+        // Serialize concurrent edits of the same invoice to avoid the
+        // delete/recreate race corrupting stock counts.
+        $lockName = 'pos_edit_' . md5($organization_id . ':' . $request->invoice_id);
+        DB::selectOne('SELECT GET_LOCK(?, ?) AS acquired', [$lockName, 10]);
+
         try {
-            return DB::transaction(function () use ($request, $organization_id, $user_id) {
+            // If this exact edit was already applied to this invoice, return the
+            // current state instead of processing it again.
+            $existing = Invoice::where('organization_id', $organization_id)
+                ->find($request->invoice_id);
+            if ($existing && $existing->idempotency_key === $effectiveKey) {
+                return $this->posTransactionResponse($existing, $organization_id);
+            }
+
+            return DB::transaction(function () use ($request, $organization_id, $user_id, $effectiveKey) {
                 $invoice = Invoice::where('organization_id', $organization_id)
                     ->with(['payments', 'client'])
                     ->findOrFail($request->invoice_id);
@@ -216,6 +350,7 @@ class PosController extends Controller
                 // Update invoice
                 $invoice->update([
                     'transaction_id' => $transact_id,
+                    'idempotency_key' => $effectiveKey,
                     'edited_by' => $user_id,
                     'description' => "Sales from POS Menu",
                     'payment_type' => "POS",
@@ -276,6 +411,8 @@ class PosController extends Controller
             });
         } catch (\Exception $e) {
             return response()->json(['error' => 'Edit transaction failed: ' . $e->getMessage()], 500);
+        } finally {
+            DB::selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
         }
     }
 

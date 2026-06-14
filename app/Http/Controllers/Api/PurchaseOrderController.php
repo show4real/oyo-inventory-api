@@ -272,25 +272,62 @@ class PurchaseOrderController extends Controller
 
     public function moveOrder($id, Request $request)
     {
-       
-        $purchase_order = $this->purchase_order->where('organization_id', auth()->user()->organization_id)->findOrFail($id);
-        $purchase_order->quantity_moved =$purchase_order->quantity_moved+$request->quantity_moved;
-        $purchase_order->save();
+        $organization_id = auth()->user()->organization_id;
 
-        $stock= Stock::where('purchase_order_id', $id)->where('branch_id', $request->branch_id)->first();
-        $prev_quantity= $stock !== null ? $stock->stock_quantity : 0;
+        $request->validate([
+            'branch_id'       => 'required|exists:branches,id',
+            'quantity_moved'  => 'required|integer|min:1',
+        ]);
 
-        $quantity_moved = $request->quantity_moved+$prev_quantity;
-        $new_stock = Stock::updateOrCreate(
+        $quantity = (int) $request->quantity_moved;
+        $branch_id = $request->branch_id;
 
-            ['purchase_order_id' => $id,'branch_id' => request('branch_id')],
-            ['stock_quantity' => $quantity_moved, 'product_id' =>$purchase_order->product_id, 
-            'supplier_id' => $purchase_order->supplier_id,'organization_id' => auth()->user()->organization_id]
-        
-        );
-           
-        
-        return response()->json(compact('purchase_order'));
+        try {
+            return DB::transaction(function () use ($id, $quantity, $branch_id, $organization_id) {
+                // Lock the order row first. Every move for this order targets the
+                // same row, so this serializes concurrent / double-submitted moves
+                // and prevents both lost updates and duplicate stock rows.
+                $purchase_order = $this->purchase_order
+                    ->where('organization_id', $organization_id)
+                    ->lockForUpdate()
+                    ->findOrFail($id);
+
+                // Never move more than what remains on the order.
+                $remaining = (int) $purchase_order->stock_quantity - (int) $purchase_order->quantity_moved;
+                if ($quantity > $remaining) {
+                    throw new \Exception("Cannot move {$quantity}; only {$remaining} unit(s) remaining on this order.");
+                }
+
+                $purchase_order->quantity_moved += $quantity;
+                $purchase_order->save();
+
+                // Find (and lock) the destination branch stock row, if any. Because
+                // the parent order is already locked, a concurrent request can't slip
+                // in and create a second row for the same branch.
+                $new_stock = Stock::where('purchase_order_id', $id)
+                    ->where('branch_id', $branch_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($new_stock) {
+                    $new_stock->stock_quantity += $quantity;
+                    $new_stock->save();
+                } else {
+                    $new_stock = Stock::create([
+                        'purchase_order_id' => $id,
+                        'branch_id'         => $branch_id,
+                        'stock_quantity'    => $quantity,
+                        'product_id'        => $purchase_order->product_id,
+                        'supplier_id'       => $purchase_order->supplier_id,
+                        'organization_id'   => $organization_id,
+                    ]);
+                }
+
+                return response()->json(compact('purchase_order', 'new_stock'));
+            });
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Move failed: ' . $e->getMessage()], 500);
+        }
     }
 
     

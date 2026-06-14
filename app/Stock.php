@@ -47,16 +47,48 @@ class Stock extends Model
     }
 
 
+    /**
+     * SQL expression for the real available quantity, matching the
+     * `in_stock` accessor: stock_quantity minus sold, returned and saved.
+     * COALESCE guards against NULL columns (NULL arithmetic returns NULL and
+     * would silently drop rows from the filter).
+     */
+    public static function availableQtyExpression()
+    {
+        return '(COALESCE(stock_quantity,0) - COALESCE(quantity_sold,0) - COALESCE(quantity_returned,0) - COALESCE(quantity_saved,0))';
+    }
+
     public function scopeAvailableStock($query)
     {
-        return $query->whereRaw('stock_quantity - quantity_sold > 0');
+        return $query->whereRaw(self::availableQtyExpression() . ' > 0');
+    }
+
+    /**
+     * Order by real available quantity. Highest available first by default;
+     * the caller (request) can flip it to show the least/zero available first.
+     * Accepts: 'desc'|'available' (highest first) or 'asc'|'unavailable' (lowest/zero first).
+     */
+    public function scopeOrderByAvailable($query, $direction = 'desc')
+    {
+        $direction = strtolower((string) $direction);
+
+        // friendly aliases coming from the request
+        if ($direction === 'available') {
+            $direction = 'desc';
+        } elseif ($direction === 'unavailable') {
+            $direction = 'asc';
+        }
+
+        $direction = $direction === 'asc' ? 'asc' : 'desc';
+
+        return $query->orderByRaw(self::availableQtyExpression() . ' ' . $direction);
     }
 
     /**
      * Filter stocks by availability.
      * Accepts: 'available'|'unavailable' or 1|0 (or numeric strings).
-     * - available / 1 => stock_quantity - quantity_sold > 0
-     * - unavailable / 0 => stock_quantity - quantity_sold = 0
+     * - available / 1 => available qty > 0
+     * - unavailable / 0 => available qty <= 0
      */
     public function scopeInStock($query, $filter)
     {
@@ -69,22 +101,24 @@ class Stock extends Model
             $filter = trim(strtolower($filter));
         }
 
+        $available = self::availableQtyExpression();
+
         // treat 'available' or truthy numeric > 0 as available
         if ($filter === 'available' || $filter === '1' || $filter === 1) {
-            return $query->whereRaw('stock_quantity - quantity_sold > 0');
+            return $query->whereRaw($available . ' > 0');
         }
 
-        // treat 'unavailable' or '0' or 0 as out of stock (== 0)
+        // treat 'unavailable' or '0' or 0 as out of stock (<= 0)
         if ($filter === 'unavailable' || $filter === '0' || $filter === 0) {
-            return $query->whereRaw('stock_quantity - quantity_sold = 0');
+            return $query->whereRaw($available . ' <= 0');
         }
 
         // if numeric string like '2' or any other numeric, use numeric comparison
         if (is_numeric($filter)) {
             if (intval($filter) > 0) {
-                return $query->whereRaw('stock_quantity - quantity_sold > 0');
+                return $query->whereRaw($available . ' > 0');
             }
-            return $query->whereRaw('stock_quantity - quantity_sold = 0');
+            return $query->whereRaw($available . ' <= 0');
         }
 
         // fallback: return unmodified
@@ -123,12 +157,17 @@ class Stock extends Model
 
     public function getInitialQuantityAttribute()
     {
-        $purchase_order = PurchaseOrder::where('id', $this->purchase_order_id)->first();
+        // Reconstruct the quantity THIS stock row originally held, before any
+        // branch transfers changed its stock_quantity. We can't read it from the
+        // purchase order: after a transfer several stock rows share one order, and
+        // the order's stock_quantity is itself mutated when more qty is added.
+        //
+        // A move OUT of this row (from_stock_id) lowered stock_quantity, so we add
+        // it back; a move IN (to_stock_id) raised it, so we subtract it.
+        $movedOut = StockMovement::where('from_stock_id', $this->id)->sum('quantity');
+        $movedIn  = StockMovement::where('to_stock_id', $this->id)->sum('quantity');
 
-        if($purchase_order){
-            return $purchase_order->stock_quantity;
-        }
-
+        return $this->stock_quantity + $movedOut - $movedIn;
     }
 
 

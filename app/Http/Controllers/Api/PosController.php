@@ -531,22 +531,6 @@ class PosController extends Controller
             ->latest()
             ->paginate($request->rows, ['*'], 'page', $request->page);
         
-        $sales=$this->pos
-        ->where('organization_id', auth()->user()->organization_id)
-        ->search($request->search)
-        // ->order($request->order)
-        ->employee($request->user)
-        ->branch($request->branch)
-        //->startdate($request->fromdate)
-        //->enddate($request->todate)
-        ->get();
-        $total_sales=0;
-        foreach($sales as $sale){
-            
-            $result=($sale['selling_price'] * $sale['qty_sold']);
-             $total_sales+=$result;
-        }
-
         $invoice=Invoice::where('organization_id', auth()->user()->organization_id)
         ->search($request->search)
         // ->order($request->order)
@@ -562,13 +546,25 @@ class PosController extends Controller
 
         $total_amount_paid = $invoice->sum('amount_paid');
 
+        // Derive gross sales from the SAME invoices so every figure reconciles.
+        // Checkout sets amount = sales - discount + delivery_fee, therefore
+        // sales = amount + discount - delivery_fee. Previously total_sales was
+        // summed from Pos line items over a different filter set (branch, line
+        // level), so it never lined up with the invoice-based amounts/balance.
+        $total_sales = $total_amount + $total_discount - $total_delivery_fee;
+
+        // Net outstanding balance, discount/delivery-aware. `amount` already
+        // accounts for discount and delivery, so balance = amount - amount_paid.
+        // This matches the per-invoice balance used by /api/clients/balance.
+        $total_balance = $total_amount - $total_amount_paid;
+
         $branches = Branch::where('organization_id', auth()->user()->organization_id)
         ->where('sell', 1)
         ->select('id','name')->get();
         
         
         return response()->json(compact('pos_sales',
-        'users','total_sales','total_amount','total_discount','total_amount_paid','total_delivery_fee','branches'));
+        'users','total_sales','total_amount','total_discount','total_amount_paid','total_delivery_fee','total_balance','branches'));
     }
 
     public function getPosSales2(Request $request)

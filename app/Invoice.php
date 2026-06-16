@@ -183,18 +183,21 @@ class Invoice extends Model
 
     
 
-    public function scopeFilterDueDate($query, $start_date, $end_date)
+    /**
+     * Filter by the transaction date (created_at), i.e. when the sale happened.
+     * Applied as a WHERE before grouping, so it also constrains which invoices
+     * feed the balance aggregation. whereDate compares the date part only, so
+     * the end date is inclusive of the whole day regardless of stored time, and
+     * NULL-due-date (cash/POS) invoices are no longer wrongly dropped.
+     */
+    public function scopeFilterTransactionDate($query, $start_date, $end_date)
     {
-        if ($start_date && $end_date) {
-            return $query->havingRaw('MAX(due_date) BETWEEN ? AND ?', [$start_date, $end_date]);
-        }
-
         if ($start_date) {
-            return $query->havingRaw('MAX(due_date) >= ?', [$start_date]);
+            $query->whereDate('created_at', '>=', $start_date);
         }
 
         if ($end_date) {
-            return $query->havingRaw('MAX(due_date) <= ?', [$end_date]);
+            $query->whereDate('created_at', '<=', $end_date);
         }
 
         return $query;

@@ -270,9 +270,22 @@ class ClientController extends Controller
         // not MAX(due_date) across all invoices: an older invoice can have a later
         // due date and would otherwise win. A correlated subquery picks the
         // due_date of the newest invoice per client (created_at, tie-broken by id).
+        // Balance breakdown per client, aligned with the figures on
+        // /api/pos_transactions so the two endpoints reconcile. The invoice math
+        // set at checkout is: amount = sales - discount + delivery_fee, and
+        // balance = amount - amount_paid. We therefore derive gross sales back
+        // out of the invoice (amount + discount - delivery_fee) instead of
+        // re-summing Pos rows, which keeps every figure here internally
+        // consistent: total_amount = total_sales - total_discount + total_delivery_fee
+        // and total_client_balance = total_amount - total_amount_paid.
         $balances = Invoice::where('organization_id', $orgId)
                 ->select(
                 'client_id',
+                DB::raw('SUM(COALESCE(amount,0) + COALESCE(discount,0) - COALESCE(delivery_fee,0)) as total_sales'),
+                DB::raw('SUM(COALESCE(discount,0)) as total_discount'),
+                DB::raw('SUM(COALESCE(delivery_fee,0)) as total_delivery_fee'),
+                DB::raw('SUM(amount) as total_amount'),
+                DB::raw('SUM(amount_paid) as total_amount_paid'),
                 DB::raw('SUM(amount - amount_paid) as total_client_balance'),
                 DB::raw('(SELECT i2.due_date FROM invoices i2
                           WHERE i2.client_id = invoices.client_id
@@ -285,7 +298,7 @@ class ClientController extends Controller
             ->groupBy('client_id')
             ->havingRaw('SUM(amount - amount_paid) > 0')
             ->searchByClientName($request->search)
-            ->filterDueDate($request->start_date, $request->end_date)
+            ->filterTransactionDate($request->start_date, $request->end_date)
             ->paginate($request->rows, ['*'], 'page', $request->page);
 
         return response()->json(compact('balances'));

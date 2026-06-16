@@ -39,7 +39,10 @@ class StockController extends Controller
 
         $stocksQuery = Stock::where('organization_id', auth()->user()->organization_id)
             ->where('branch_id', $request->branch_id)
-            ->orderByAvailable($request->sort ?? 'desc') // primary sort: highest available first by default; request can flip to 'unavailable'/'asc'
+            ->when($request->sort, function ($query) use ($request) {
+                // only sort by availability when the request explicitly asks ('available'/'unavailable'/'asc'/'desc')
+                $query->orderByAvailable($request->sort);
+            })
             ->search($request->search)
             ->product($request->order) // assuming this is filtering by product_id
             ->inStock($request->in_stock)
@@ -47,7 +50,7 @@ class StockController extends Controller
             ->enddate($request->end_date)
             ->expiryDate($request->expiry_date)
             ->with('order')
-            ->latest();
+            ->latest(); // default: most recently added stock first
 
         $stocks = $stocksQuery->with([
             'movementsFrom.toBranch', 

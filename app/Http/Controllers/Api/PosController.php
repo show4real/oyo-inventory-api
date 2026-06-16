@@ -791,7 +791,19 @@ class PosController extends Controller
             ->search($request->search)
             ->category($request->category)
             ->brand($request->brand)
-            ->sort($request->order);
+            ->when($request->order, function ($query) use ($request) {
+                // explicit sort requested (recent/name/oldest/...)
+                $query->sort($request->order);
+            }, function ($query) {
+                // default: products whose stock was most recently added come first,
+                // then products with no stock fall to the bottom.
+                $query->orderByDesc(
+                    Stock::select('created_at')
+                        ->whereColumn('stocks.product_id', 'products.id')
+                        ->latest()
+                        ->limit(1)
+                );
+            });
 
         // Stock-status filter (available / unavailable / low). Applied at the
         // query level so pagination counts reflect the filtered set rather than

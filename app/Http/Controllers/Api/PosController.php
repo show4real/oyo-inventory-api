@@ -8,6 +8,7 @@ use App\Branch;
 use Valiadtor;
 use Str;
 use App\Stock;
+use App\StockMovement;
 use App\User;
 use App\StockSerialNo;
 use Carbon\Carbon;
@@ -760,5 +761,272 @@ class PosController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'Delete failed: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Product-level inventory summary.
+     *
+     * Returns a paginated list of products with their aggregated inventory
+     * position: how much is in stock, how much has been sold/returned/saved,
+     * the cost and retail valuation of what remains, and how that stock is
+     * spread across branches. Supports search, category/brand filters and a
+     * stock-status filter (in_stock / out_of_stock / low_stock).
+     *
+     * Pass `product_id` to get the full per-product breakdown instead
+     * (delegates to productInventoryDetail).
+     */
+    public function productInventorySummary(Request $request)
+    {
+        $organization_id = auth()->user()->organization_id;
+
+        if ($request->product_id) {
+            return $this->productInventoryDetail($request);
+        }
+
+        $lowStockThreshold = (int) ($request->low_stock_threshold ?? 5);
+
+        // Pull every product for the org (with optional search/category/brand
+        // filters), then attach an aggregated stock summary to each one.
+        $productsQuery = Product::where('organization_id', $organization_id)
+            ->search($request->search)
+            ->category($request->category)
+            ->brand($request->brand)
+            ->sort($request->order);
+
+        // Stock-status filter (available / unavailable / low). Applied at the
+        // query level so pagination counts reflect the filtered set rather than
+        // dropping rows after the page has been sliced.
+        $this->applyStockStatusFilter(
+            $productsQuery,
+            $request->stock_status,
+            $organization_id,
+            $lowStockThreshold
+        );
+
+        $products = $productsQuery
+            ->paginate($request->rows ?? 25, ['*'], 'page', $request->page);
+
+        // available qty SQL expression, qualified to the stocks table because
+        // the valuation join (purchase_order) shares those column names.
+        $available = $this->qualifiedAvailableQtyExpression();
+
+        $products->getCollection()->transform(function ($product) use ($organization_id, $available, $lowStockThreshold) {
+            $summary = $this->buildProductStockSummary($product->id, $organization_id, $available);
+            $summary['low_stock'] = $summary['available_quantity'] > 0
+                && $summary['available_quantity'] <= $lowStockThreshold;
+
+            $product->inventory = $summary;
+            return $product;
+        });
+
+        // Org-wide totals across ALL products (not just the current page) so the
+        // dashboard cards stay correct regardless of pagination.
+        $totals = $this->buildInventoryTotals($organization_id, $available);
+
+        return response()->json(compact('products', 'totals', 'lowStockThreshold'));
+    }
+
+    /**
+     * Deep-dive inventory detail for a single product, including:
+     *  - overall stock position (in stock, sold, returned, saved, valuation)
+     *  - stock count broken down per branch
+     *  - the individual stock (batch) rows with their purchase order pricing
+     *  - stock movement history (branch transfers)
+     *  - recent sales history from the POS
+     *  - purchase / restock history
+     */
+    public function productInventoryDetail(Request $request)
+    {
+        $organization_id = auth()->user()->organization_id;
+        $product_id = $request->product_id;
+
+        $product = Product::where('organization_id', $organization_id)
+            ->find($product_id);
+
+        if (!$product) {
+            return response()->json(['error' => 'Product not found'], 404);
+        }
+
+        $available = $this->qualifiedAvailableQtyExpression();
+
+        // Overall position for this product.
+        $summary = $this->buildProductStockSummary($product_id, $organization_id, $available);
+
+        // Stock count per branch.
+        $byBranch = Stock::where('stocks.organization_id', $organization_id)
+            ->where('stocks.product_id', $product_id)
+            ->leftJoin('branches', 'branches.id', '=', 'stocks.branch_id')
+            ->groupBy('stocks.branch_id', 'branches.name')
+            ->select(
+                'stocks.branch_id',
+                DB::raw('COALESCE(branches.name, "Unassigned") as branch_name'),
+                DB::raw('COALESCE(SUM(stocks.stock_quantity),0) as total_quantity'),
+                DB::raw('COALESCE(SUM(stocks.quantity_sold),0) as quantity_sold'),
+                DB::raw('COALESCE(SUM(stocks.quantity_returned),0) as quantity_returned'),
+                DB::raw('COALESCE(SUM(stocks.quantity_saved),0) as quantity_saved'),
+                DB::raw('SUM(' . $available . ') as available_quantity')
+            )
+            ->get();
+
+        // Individual stock batches (with purchase order pricing & branch).
+        $batches = Stock::where('organization_id', $organization_id)
+            ->where('product_id', $product_id)
+            ->with('order', 'branch')
+            ->latest()
+            ->get();
+
+        // Stock movement (transfer) history.
+        $movements = StockMovement::where('organization_id', $organization_id)
+            ->where('product_id', $product_id)
+            ->with(['fromBranch:id,name', 'toBranch:id,name', 'user:id,firstname,lastname'])
+            ->latest()
+            ->limit((int) ($request->movement_limit ?? 50))
+            ->get();
+
+        // Recent sales history from the POS.
+        $sales = $this->pos
+            ->where('organization_id', $organization_id)
+            ->where('product_id', $product_id)
+            ->with('order')
+            ->latest()
+            ->limit((int) ($request->sales_limit ?? 50))
+            ->get();
+
+        // Purchase / restock history.
+        $purchases = PurchaseOrder::where('organization_id', $organization_id)
+            ->where('product_id', $product_id)
+            ->with('supplier')
+            ->latest()
+            ->limit((int) ($request->purchase_limit ?? 50))
+            ->get();
+
+        return response()->json(compact(
+            'product',
+            'summary',
+            'byBranch',
+            'batches',
+            'movements',
+            'sales',
+            'purchases'
+        ));
+    }
+
+    /**
+     * Aggregate the stock position for one product into a flat summary array.
+     * Quantities come straight from the stock table; valuation joins the
+     * purchase order to value remaining stock at both cost and retail.
+     */
+    private function buildProductStockSummary($product_id, $organization_id, $available)
+    {
+        $row = Stock::where('stocks.organization_id', $organization_id)
+            ->where('stocks.product_id', $product_id)
+            ->leftJoin('purchase_order', 'purchase_order.id', '=', 'stocks.purchase_order_id')
+            ->select(
+                DB::raw('COALESCE(SUM(stocks.stock_quantity),0) as total_quantity'),
+                DB::raw('COALESCE(SUM(stocks.quantity_sold),0) as quantity_sold'),
+                DB::raw('COALESCE(SUM(stocks.quantity_returned),0) as quantity_returned'),
+                DB::raw('COALESCE(SUM(stocks.quantity_saved),0) as quantity_saved'),
+                DB::raw('SUM(' . $available . ') as available_quantity'),
+                DB::raw('COUNT(DISTINCT stocks.id) as batch_count'),
+                DB::raw('COUNT(DISTINCT stocks.branch_id) as branch_count'),
+                DB::raw('COALESCE(SUM((' . $available . ') * COALESCE(purchase_order.unit_price,0)),0) as stock_value_cost'),
+                DB::raw('COALESCE(SUM((' . $available . ') * COALESCE(purchase_order.unit_selling_price,0)),0) as stock_value_retail')
+            )
+            ->first();
+
+        return [
+            'total_quantity'     => (int) $row->total_quantity,
+            'quantity_sold'      => (int) $row->quantity_sold,
+            'quantity_returned'  => (int) $row->quantity_returned,
+            'quantity_saved'     => (int) $row->quantity_saved,
+            'available_quantity' => (int) $row->available_quantity,
+            'batch_count'        => (int) $row->batch_count,
+            'branch_count'       => (int) $row->branch_count,
+            'stock_value_cost'   => (float) $row->stock_value_cost,
+            'stock_value_retail' => (float) $row->stock_value_retail,
+        ];
+    }
+
+    /**
+     * Organization-wide inventory totals across every product, for summary
+     * cards that should not be affected by pagination.
+     */
+    private function buildInventoryTotals($organization_id, $available)
+    {
+        $row = Stock::where('stocks.organization_id', $organization_id)
+            ->leftJoin('purchase_order', 'purchase_order.id', '=', 'stocks.purchase_order_id')
+            ->select(
+                DB::raw('COUNT(DISTINCT stocks.product_id) as products_count'),
+                DB::raw('COALESCE(SUM(stocks.quantity_sold),0) as total_sold'),
+                DB::raw('SUM(' . $available . ') as total_available'),
+                DB::raw('COALESCE(SUM((' . $available . ') * COALESCE(purchase_order.unit_price,0)),0) as total_value_cost'),
+                DB::raw('COALESCE(SUM((' . $available . ') * COALESCE(purchase_order.unit_selling_price,0)),0) as total_value_retail')
+            )
+            ->first();
+
+        return [
+            'products_count'     => (int) $row->products_count,
+            'total_sold'         => (int) $row->total_sold,
+            'total_available'    => (int) $row->total_available,
+            'total_value_cost'   => (float) $row->total_value_cost,
+            'total_value_retail' => (float) $row->total_value_retail,
+        ];
+    }
+
+    /**
+     * The available-quantity SQL expression, qualified to the `stocks` table.
+     * Mirrors Stock::availableQtyExpression() but prefixes every column so it
+     * is unambiguous when the query joins `purchase_order`, which carries
+     * identically named columns (stock_quantity, quantity_sold, ...).
+     */
+    private function qualifiedAvailableQtyExpression()
+    {
+        return '(COALESCE(stocks.stock_quantity,0) - COALESCE(stocks.quantity_sold,0) - COALESCE(stocks.quantity_returned,0) - COALESCE(stocks.quantity_saved,0))';
+    }
+
+    /**
+     * Constrain a Product query by the product's aggregated available stock.
+     * A product's available quantity is summed (in SQL) across all of its
+     * non-deleted stock batches, so the filter matches the `available_quantity`
+     * shown in each row's `inventory` summary.
+     *
+     *   available   => sum > 0
+     *   unavailable => sum <= 0   (aliases: out_of_stock, out-of-stock)
+     *   low         => 0 < sum <= low_stock_threshold
+     *
+     * Anything else (including null/empty) leaves the query untouched.
+     */
+    private function applyStockStatusFilter($query, $status, $organization_id, $lowStockThreshold)
+    {
+        if ($status === null || $status === '') {
+            return $query;
+        }
+
+        $status = strtolower(trim((string) $status));
+
+        // Correlated subquery: this product's total available quantity. Honors
+        // the stocks soft-delete column so trashed batches are not counted.
+        $availSub = '(SELECT COALESCE(SUM('
+            . 'COALESCE(s.stock_quantity,0) - COALESCE(s.quantity_sold,0)'
+            . ' - COALESCE(s.quantity_returned,0) - COALESCE(s.quantity_saved,0)'
+            . '),0) FROM stocks s WHERE s.product_id = products.id'
+            . ' AND s.organization_id = ? AND s.deleted_at IS NULL)';
+
+        if (in_array($status, ['available', 'in_stock', 'in-stock', '1'], true)) {
+            return $query->whereRaw($availSub . ' > 0', [$organization_id]);
+        }
+
+        if (in_array($status, ['unavailable', 'out_of_stock', 'out-of-stock', '0'], true)) {
+            return $query->whereRaw($availSub . ' <= 0', [$organization_id]);
+        }
+
+        if (in_array($status, ['low', 'low_stock', 'low-stock'], true)) {
+            return $query->whereRaw(
+                $availSub . ' > 0 AND ' . $availSub . ' <= ?',
+                [$organization_id, $organization_id, $lowStockThreshold]
+            );
+        }
+
+        return $query;
     }
 }

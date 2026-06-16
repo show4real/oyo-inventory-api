@@ -146,6 +146,9 @@ function(){
 
     Route::post('transaction_details', 'Api\PosController@getTransactionDetails');
 
+    Route::post('inventory/product-summary', 'Api\PosController@productInventorySummary');
+    Route::post('inventory/product-detail', 'Api\PosController@productInventoryDetail');
+
     Route::post('purchase_order', 'Api\PurchaseOrderController@save');
     Route::post('purchase_order/{order}', 'Api\PurchaseOrderController@show');
     Route::post('updatepurchase_order/{order}', 'Api\PurchaseOrderController@update');
